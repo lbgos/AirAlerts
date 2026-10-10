@@ -5,39 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>AirAlerts</title>
+<script>
+  // Theme before first paint: "auto" follows the system, otherwise the saved choice.
+  const themePref = localStorage.getItem("theme") || "auto";
+  const effectiveTheme = () => (themePref === "auto" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : themePref);
+  document.documentElement.dataset.theme = effectiveTheme();
+</script>
 <style>
-  :root { --dim: #8e8e93; --line: #1c1c1e; --red: #ff453a; }
+  [data-theme="dark"] { --bg: #000; --fg: #fff; --dim: #8e8e93; --line: #1c1c1e; --track: #1c1c1e; --nodata: #141414; --red: #ff453a; --border: #3a3a3c; }
+  [data-theme="light"] { --bg: #fff; --fg: #000; --dim: #6e6e73; --line: #e5e5ea; --track: #ececee; --nodata: #f4f4f5; --red: #d70015; --border: #c7c7cc; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: #000; color: #fff; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); }
   body {
     font: 15px/1.35 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
     padding: max(14px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
-    max-width: 640px; margin: 0 auto;
+    max-width: 680px; margin: 0 auto;
   }
-  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  h1 { font-size: 20px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
-  button.lang { background: none; border: 0; color: var(--dim); font: inherit; padding: 4px 0; cursor: pointer; }
-  .controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; }
+  header { display: flex; align-items: baseline; gap: 14px; }
+  h1 { font-size: 20px; font-weight: 650; margin: 0; letter-spacing: -0.01em; flex: 1; }
+  header button { background: none; border: 0; color: var(--dim); font: inherit; padding: 4px 0; cursor: pointer; }
+  .controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; }
   select {
-    appearance: none; -webkit-appearance: none; background: #000; color: #fff; font: inherit; font-weight: 600;
-    border: 1px solid #3a3a3c; border-radius: 8px; padding: 7px 30px 7px 11px;
-    background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%);
+    appearance: none; -webkit-appearance: none; background-color: var(--bg); color: var(--fg); font: inherit; font-weight: 600;
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 30px 7px 11px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--fg) 50%), linear-gradient(135deg, var(--fg) 50%, transparent 50%);
     background-position: right 14px top 50%, right 9px top 50%; background-size: 5px 5px; background-repeat: no-repeat;
   }
   .what { color: var(--dim); font-size: 13px; }
-  ol { list-style: none; margin: 8px 0 0; padding: 0; }
+  svg { display: block; width: 100%; height: auto; margin-top: 8px; touch-action: manipulation; }
+  svg path.region { stroke: var(--bg); stroke-width: 1.6; cursor: pointer; }
+  svg path.region.selected { stroke: var(--fg); stroke-width: 3; }
+  svg .nodata { fill: var(--nodata); stroke: var(--bg); stroke-width: 1.6; }
+  svg text { font-weight: 650; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .legend { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 12px; color: var(--dim); }
+  .scale { flex: 1; max-width: 240px; }
+  .scale .ramp { height: 8px; border-radius: 4px; }
+  .scale .ticks { display: flex; justify-content: space-between; margin-top: 2px; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -3px; margin-right: 6px;
+    background: repeating-linear-gradient(45deg, var(--red) 0 3px, var(--bg) 3px 6px); }
+  .caption { min-height: 20px; margin: 8px 0 0; font-size: 14px; }
+  ol { list-style: none; margin: 4px 0 0; padding: 0; }
   li {
-    display: grid; grid-template-columns: minmax(0, 1fr) 34% 3.6em; align-items: center; gap: 12px;
-    padding: 9px 0; border-bottom: 1px solid var(--line);
+    display: grid; grid-template-columns: minmax(0, max-content) auto 1fr 30%; align-items: center; column-gap: 8px;
+    padding: 9px 0; border-bottom: 1px solid var(--line); cursor: pointer;
   }
+  li.selected { background: var(--line); }
   .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .pct { font-weight: 650; }
+  .bar { grid-column: 4; height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
   .bar i { display: block; height: 100%; border-radius: 3px; }
-  .pct { text-align: right; font-weight: 600; }
   li.active { padding: 6px 0; }
-  li.active .name { color: var(--red); }
-  li.active .state { grid-column: 2 / 4; text-align: right; color: var(--red); font-size: 13px; }
+  li.active .name, li.active .state { color: var(--red); }
+  li.active .state { grid-column: 2 / 5; text-align: right; font-size: 13px; }
   footer { margin-top: 16px; color: var(--dim); font-size: 12px; line-height: 1.5; }
   .stale { color: #ff9f0a; }
 </style>
@@ -45,12 +65,19 @@
 <body>
 <header>
   <h1 id="title"></h1>
-  <button class="lang" id="lang"></button>
+  <button id="theme"></button>
+  <button id="lang"></button>
 </header>
 <div class="controls">
   <select id="horizon" aria-label="horizon"></select>
   <span class="what" id="what"></span>
 </div>
+<svg id="map" role="img"></svg>
+<div class="legend">
+  <div class="scale"><div class="ramp" id="ramp"></div><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div>
+  <span><span class="swatch"></span><span id="alertKey"></span></span>
+</div>
+<p class="caption" id="caption"></p>
 <ol id="list"></ol>
 <footer id="foot"></footer>
 
@@ -69,48 +96,127 @@ const NAMES = {
 const T = {
   uk: {
     title: "Прогноз тривог", other: "EN", what: "ймовірність, що тривога почнеться",
-    h: { "30m": "30 хв", "1h": "1 год", "3h": "3 год", "6h": "6 год" },
-    alert: "тривога", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
-    stale: "дані застаріли", model: "модель", trained: "навчена до",
-    note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени.",
+    h: { "30m": "30 хв", "1h": "1 год", "3h": "3 год", "6h": "6 год" }, within: "за",
+    theme: { auto: "тема: авто", dark: "тема: темна", light: "тема: світла" },
+    alert: "тривога", alertNow: "тривога зараз", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
+    stale: "дані застаріли", model: "модель", trained: "навчена до", tap: "Торкніться області на мапі або в списку.",
+    note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени. Мапа: geoBoundaries, © OpenStreetMap.",
   },
   en: {
     title: "Air alert forecast", other: "УКР", what: "chance a siren starts within",
-    h: { "30m": "30 min", "1h": "1 hour", "3h": "3 hours", "6h": "6 hours" },
-    alert: "alert", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
-    stale: "data is stale", model: "model", trained: "trained until",
-    note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens.",
+    h: { "30m": "30 min", "1h": "1 hour", "3h": "3 hours", "6h": "6 hours" }, within: "within",
+    theme: { auto: "theme: auto", dark: "theme: dark", light: "theme: light" },
+    alert: "alert", alertNow: "alert now", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
+    stale: "data is stale", model: "model", trained: "trained until", tap: "Tap an oblast on the map or in the list.",
+    note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens. Map: geoBoundaries, © OpenStreetMap.",
   },
 };
+// One warm hue per theme: near the surface at 0%, saturated red at 100% (lighter in dark mode, darker in light mode).
+const RAMPS = {
+  dark: ["#262626", "#5c1d18", "#a3281e", "#ec3b2c", "#ff7259"],
+  light: ["#efeeec", "#f7c6ba", "#ee7c63", "#d23a2b", "#8a1a12"],
+};
+// Kyiv city is too small to read at phone width: it is repeated as an inset in the empty bottom-left corner.
+const INSET = { x: 40, y: 500, size: 120 };
+
 let lang = localStorage.getItem("lang") || "uk";
 let horizon = localStorage.getItem("horizon") || "1h";
-let state = null;
+let theme = themePref;
+let state = null, geo = null, selected = null;
 
 const $ = (id) => document.getElementById(id);
-const time = (iso) => new Date(iso).toLocaleTimeString(lang === "uk" ? "uk-UA" : "en-GB", { hour: "2-digit", minute: "2-digit" });
-const date = (iso) => new Date(iso).toLocaleDateString(lang === "uk" ? "uk-UA" : "en-GB", { day: "2-digit", month: "2-digit" });
+const locale = () => (lang === "uk" ? "uk-UA" : "en-GB");
+const time = (iso) => new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
+const date = (iso) => new Date(iso).toLocaleDateString(locale(), { day: "2-digit", month: "2-digit" });
 const pct = (p) => (p < 0.01 ? "<1%" : Math.round(p * 100) + "%");
 const duration = (m, t) => (m < 60 ? `${m} ${t.min}` : `${Math.floor(m / 60)} ${t.hr} ${m % 60} ${t.min}`);
-// Grey for unlikely, amber in the middle, red when likely.
-const color = (p) => (p < 0.15 ? "#636366" : p < 0.4 ? "#ffd60a" : p < 0.7 ? "#ff9f0a" : "#ff453a");
+const name = (id) => NAMES[id]?.[lang === "uk" ? 0 : 1] ?? id;
+
+// Colour interpolation in OKLab, so steps look evenly spaced.
+const toLin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const toSrgb = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+function hexToLab(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => toLin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+}
+function labToHex([L, A, B]) {
+  const l = (L + 0.3963377774 * A + 0.2158037573 * B) ** 3, m = (L - 0.1055613458 * A - 0.0638541728 * B) ** 3, s = (L - 0.0894841775 * A - 1.291485548 * B) ** 3;
+  const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+  return "#" + rgb.map((c) => Math.round(Math.min(1, Math.max(0, toSrgb(c))) * 255).toString(16).padStart(2, "0")).join("");
+}
+function color(p) {
+  const stops = RAMPS[document.documentElement.dataset.theme].map(hexToLab);
+  const x = Math.min(Math.max(p, 0), 1) * (stops.length - 1), i = Math.min(Math.floor(x), stops.length - 2), f = x - i;
+  return labToHex(stops[i].map((v, k) => v + (stops[i + 1][k] - v) * f));
+}
+const ink = (hex) => (hexToLab(hex)[0] > 0.66 ? "#000" : "#fff"); // label colour readable on the fill
+
+function applyTheme() {
+  document.documentElement.dataset.theme = theme === "auto" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : theme;
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+}
+
+function renderMap(byId, t) {
+  if (!geo) return;
+  const svg = $("map");
+  svg.setAttribute("viewBox", geo.viewBox);
+  const fillOf = (r) => (r.active ? "url(#hatch)" : color(r.p[horizon]));
+  const labelOf = (r, x, y, size) => {
+    if (r.active) return "";
+    const f = color(r.p[horizon]);
+    return `<text x="${x}" y="${y}" font-size="${size}" fill="${ink(f)}">${pct(r.p[horizon])}</text>`;
+  };
+  let out = `<defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="16" height="16" patternTransform="rotate(45)">
+    <rect width="16" height="16" fill="var(--bg)"/><rect width="8" height="16" fill="var(--red)"/></pattern></defs>`;
+  out += geo.other.map((d) => `<path class="nodata" d="${d}"/>`).join("");
+  const ids = Object.keys(geo.regions).filter((id) => byId[id]).sort((a, b) => (a === "kyiv") - (b === "kyiv")); // city on top
+  for (const id of ids) {
+    out += `<path class="region${id === selected ? " selected" : ""}" data-id="${id}" d="${geo.regions[id].d}" fill="${fillOf(byId[id])}"><title>${name(id)}</title></path>`;
+  }
+  for (const id of ids) if (id !== "kyiv") out += labelOf(byId[id], ...geo.regions[id].label, 30);
+  const k = byId.kyiv;
+  if (k) {
+    const { x, y, size } = INSET;
+    out += `<rect class="region${selected === "kyiv" ? " selected" : ""}" data-id="kyiv" x="${x}" y="${y}" width="${size}" height="${size}" rx="14"
+      fill="${fillOf(k)}" stroke="${selected === "kyiv" ? "var(--fg)" : "var(--border)"}" stroke-width="${selected === "kyiv" ? 3 : 1.5}" style="cursor:pointer"/>`;
+    out += labelOf(k, x + size / 2, y + size / 2, 34);
+    out += `<text x="${x + size / 2}" y="${y - 22}" font-size="26" fill="var(--fg)">${name("kyiv")}</text>`;
+  }
+  svg.innerHTML = out;
+  svg.setAttribute("aria-label", t.title);
+}
 
 function render() {
   const t = T[lang];
   document.documentElement.lang = lang;
   $("title").textContent = t.title;
   $("lang").textContent = t.other;
+  $("theme").textContent = t.theme[theme];
   $("what").textContent = t.what;
+  $("alertKey").textContent = t.alertNow;
+  $("ramp").style.background = `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1].map(color).join(", ")})`;
   $("horizon").innerHTML = Object.entries(t.h)
     .map(([k, v]) => `<option value="${k}"${k === horizon ? " selected" : ""}>${v}</option>`).join("");
   if (!state) return;
 
+  const byId = Object.fromEntries(state.regions.map((r) => [r.id, r]));
+  renderMap(byId, t);
+
+  const s = selected && byId[selected];
+  $("caption").innerHTML = s
+    ? `<b>${name(s.id)}</b> · ${s.active ? `<span style="color:var(--red)">${t.alert} ${duration(s.alert_minutes, t)}</span>` : `${pct(s.p[horizon])} ${t.within} ${t.h[horizon]}`}`
+    : `<span style="color:var(--dim)">${t.tap}</span>`;
+
   const rows = [...state.regions].sort((a, b) =>
     a.active !== b.active ? (a.active ? 1 : -1) : a.active ? b.alert_minutes - a.alert_minutes : b.p[horizon] - a.p[horizon]);
   $("list").innerHTML = rows.map((r) => {
-    const name = NAMES[r.id]?.[lang === "uk" ? 0 : 1] ?? r.id;
-    if (r.active) return `<li class="active"><span class="name">${name}</span><span class="state">${t.alert} · ${duration(r.alert_minutes, t)}</span></li>`;
+    const cls = `${r.active ? "active" : ""}${r.id === selected ? " selected" : ""}`;
+    if (r.active) return `<li class="${cls}" data-id="${r.id}"><span class="name">${name(r.id)}</span><span class="state">${t.alert} · ${duration(r.alert_minutes, t)}</span></li>`;
     const p = r.p[horizon];
-    return `<li><span class="name">${name}</span><span class="bar"><i style="width:${Math.max(p * 100, 1)}%;background:${color(p)}"></i></span><span class="pct">${pct(p)}</span></li>`;
+    return `<li class="${cls}" data-id="${r.id}"><span class="name">${name(r.id)}</span><span class="pct">${pct(p)}</span><span></span><span class="bar"><i style="width:${Math.max(p * 100, 1)}%;background:${color(p)}"></i></span></li>`;
   }).join("");
 
   const stale = Date.now() - new Date(state.generated_at) > 3 * 60 * 1000;
@@ -129,8 +235,25 @@ async function load() {
   render();
 }
 
+function select(e) {
+  const id = e.target.closest("[data-id]")?.dataset.id;
+  if (!id) return;
+  selected = selected === id ? null : id;
+  render();
+}
+
+$("map").addEventListener("click", select);
+$("list").addEventListener("click", select);
 $("horizon").addEventListener("change", (e) => { horizon = e.target.value; localStorage.setItem("horizon", horizon); render(); });
 $("lang").addEventListener("click", () => { lang = lang === "uk" ? "en" : "uk"; localStorage.setItem("lang", lang); render(); });
+$("theme").addEventListener("click", () => {
+  theme = { auto: "dark", dark: "light", light: "auto" }[theme];
+  localStorage.setItem("theme", theme);
+  applyTheme(); render();
+});
+matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => { if (theme === "auto") { applyTheme(); render(); } });
+applyTheme();
+fetch("ukraine.json").then((r) => r.json()).then((g) => { geo = g; render(); });
 load();
 setInterval(load, 30000);
 </script>

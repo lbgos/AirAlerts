@@ -2,7 +2,7 @@
 
 Only the alert channel is read: the chosen model uses no radar features (see README).
 New posts are appended to data/raw/UkraineAlarmSignal.jsonl in the scraper's format, so live data can be trained on later.
-The page (web/index.html) fetches /state.json, which is rewritten after every poll.
+The page (web/index.html) fetches /state.json, rewritten after every poll, and /ukraine.json (map, scripts/make_map.py).
 """
 
 import asyncio
@@ -24,7 +24,8 @@ from .train import LABEL_CHANNEL, LIVE_MODEL_PATH
 HISTORY = pd.Timedelta(hours=30)  # features look back 24h; alerts opened before that can still be running
 POLL_SECONDS = 30
 STATE_PATH = ROOT / "data" / "live" / "state.json"
-INDEX_HTML = Path(__file__).parent / "web" / "index.html"
+WEB_DIR = Path(__file__).parent / "web"
+STATIC = {"/": ("index.html", "text/html; charset=utf-8"), "/ukraine.json": ("ukraine.json", "application/json")}
 
 
 def recent_posts(path: Path, since: pd.Timestamp) -> list[dict]:
@@ -74,8 +75,9 @@ def write_state(state: dict) -> None:
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split("?")[0]
-        if path in ("/", "/index.html"):
-            body, ctype = INDEX_HTML.read_bytes(), "text/html; charset=utf-8"
+        if path in STATIC:
+            name, ctype = STATIC[path]
+            body = (WEB_DIR / name).read_bytes()
         elif path == "/state.json" and STATE_PATH.exists():
             body, ctype = STATE_PATH.read_bytes(), "application/json"
         else:

@@ -4,7 +4,8 @@ Forecasts the probability that an air raid siren **starts** in a Ukrainian oblas
 Calibrated: a forecast of 70% should come true about 70% of the time.
 
 Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast at the current time and serves a one-page UI
-(Ukrainian/English, horizon dropdown, oblasts under alert listed separately).
+(Ukrainian/English, dark/light, horizon dropdown, map of oblasts shaded by probability, oblasts under alert hatched).
+Map geometry: geoBoundaries UKR ADM1 (OpenStreetMap, ODbL), converted by `scripts/make_map.py`.
 
 ## Data
 
