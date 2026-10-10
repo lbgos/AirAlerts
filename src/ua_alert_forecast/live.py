@@ -23,6 +23,9 @@ from .train import LABEL_CHANNEL, LIVE_MODEL_PATH
 
 HISTORY = pd.Timedelta(hours=30)  # features look back 24h; alerts opened before that can still be running
 POLL_SECONDS = 30
+# Collected only (appended to data/raw/), not used by the models: @raketa_trevoga deletes posts after ~2 days, so its
+# history has to be recorded live before it can be tested as a feature.
+COLLECT_CHANNELS = ["raketa_trevoga"]
 STATE_PATH = ROOT / "data" / "live" / "state.json"
 # One line per poll: every region's forecasts at that moment, for scoring against what happened (`forecast score-live`).
 PREDICTION_LOG = ROOT / "data" / "live" / "predictions.jsonl"
@@ -35,9 +38,9 @@ def recent_posts(path: Path, since: pd.Timestamp) -> list[dict]:
         return [p for p in map(json.loads, f) if pd.Timestamp(p["date"]) >= since]
 
 
-async def fetch_new(client: TelegramClient, path: Path, after_id: int) -> list[dict]:
+async def fetch_new(client: TelegramClient, path: Path, after_id: int, channel: str = LABEL_CHANNEL) -> list[dict]:
     """Posts newer than `after_id`, oldest first, also appended to the raw dump."""
-    new = [to_row(m) async for m in client.iter_messages(LABEL_CHANNEL, min_id=after_id, reverse=True)]
+    new = [to_row(m) async for m in client.iter_messages(channel, min_id=after_id, reverse=True)]
     if new:
         with path.open("a") as f:
             f.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in new)
@@ -119,8 +122,12 @@ async def run(host: str, port: int) -> None:
     path = RAW_DIR / f"{LABEL_CHANNEL}.jsonl"
     last_id = last_saved_id(path)
     posts = recent_posts(path, pd.Timestamp.now(tz="UTC") - HISTORY)
+    collect_ids = {ch: last_saved_id(RAW_DIR / f"{ch}.jsonl") for ch in COLLECT_CHANNELS}
     while True:
         try:
+            for ch in COLLECT_CHANNELS:
+                got = await fetch_new(client, RAW_DIR / f"{ch}.jsonl", collect_ids[ch], ch)
+                collect_ids[ch] = got[-1]["id"] if got else collect_ids[ch]
             new = await fetch_new(client, path, last_id)
             if new:
                 last_id = new[-1]["id"]

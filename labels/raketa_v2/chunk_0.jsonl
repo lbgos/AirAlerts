@@ -1,0 +1,99 @@
+{"channel": "raketa_trevoga", "id": 91018, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kirovohradska", "cherkaska", "khmelnytska", "rivnenska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91019, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyivska", "kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91020, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyivska", "kirovohradska", "cherkaska", "zhytomyrska", "zaporizka"], "count": null}
+{"channel": "raketa_trevoga", "id": 91021, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kyiv"], "count": null}
+{"channel": "raketa_trevoga", "id": 91022, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyivska", "cherkaska", "zhytomyrska", "zaporizka", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91023, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyiv", "kyivska", "cherkaska", "zhytomyrska", "zaporizka", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91024, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyivska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91025, "kind": "impact", "weapon": "shahed", "now_in": ["kyiv"], "heading_to": [], "count": null}
+{"channel": "raketa_trevoga", "id": 91026, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyivska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91027, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyivska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91028, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91029, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91030, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "mykolaivska", "dnipropetrovska", "poltavska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91031, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91032, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kirovohradska", "mykolaivska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91033, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "vinnytska", "kirovohradska", "cherkaska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91034, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "vinnytska", "zhytomyrska", "kyivska", "cherkaska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91035, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kyiv"], "count": null}
+{"channel": "raketa_trevoga", "id": 91036, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["khmelnytska", "chernihivska", "kyivska", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91037, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91038, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kyiv"], "count": null}
+{"channel": "raketa_trevoga", "id": 91039, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91040, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska", "kyivska", "kyiv", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91041, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kyiv", "kyivska", "cherkaska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91042, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["volynska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91043, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "vinnytska", "kyivska", "cherkaska", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91044, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "zhytomyrska", "vinnytska", "cherkaska", "kirovohradska", "mykolaivska", "poltavska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91045, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "zhytomyrska", "vinnytska", "kyivska", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91046, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "raketa_trevoga", "id": 91047, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91048, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska", "vinnytska", "zhytomyrska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91049, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["khmelnytska", "vinnytska", "zhytomyrska", "kyivska", "kirovohradska", "mykolaivska", "kharkivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91050, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["sumska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91051, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91052, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91053, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zhytomyrska", "kyivska", "poltavska", "cherkaska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91054, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zhytomyrska", "kyivska", "poltavska", "vinnytska", "mykolaivska", "odeska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91055, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska", "kyivska", "vinnytska", "mykolaivska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91056, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["sumska", "kyivska", "zhytomyrska", "mykolaivska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91057, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["odeska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91058, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["sumska", "chernihivska", "kyivska", "vinnytska", "mykolaivska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91059, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["sumska", "chernihivska", "zhytomyrska", "khmelnytska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91060, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "khmelnytska", "mykolaivska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91061, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska", "kirovohradska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91062, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["ivano_frankivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91063, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "raketa_trevoga", "id": 91064, "kind": "threat", "weapon": "jet_drone", "now_in": ["vinnytska"], "heading_to": [], "count": null}
+{"channel": "raketa_trevoga", "id": 91065, "kind": "threat", "weapon": "jet_drone", "now_in": ["vinnytska"], "heading_to": ["chernihivska", "kyivska", "zhytomyrska", "khmelnytska", "odeska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91066, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["rivnenska", "khmelnytska", "zhytomyrska", "kyivska", "dnipropetrovska", "kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91067, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["volynska", "rivnenska", "zhytomyrska", "kyivska", "dnipropetrovska", "kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91068, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["volynska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91069, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "rivnenska", "zhytomyrska", "kyivska", "kyiv", "dnipropetrovska", "kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91070, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "rivnenska", "zhytomyrska", "kyivska", "kyiv", "dnipropetrovska", "kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91071, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["sumska", "chernihivska", "kyivska", "zhytomyrska", "volynska", "cherkaska", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91072, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["sumska", "chernihivska", "kyivska", "zhytomyrska", "rivnenska", "volynska", "cherkaska", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91073, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["sumska", "chernihivska", "kyivska", "zhytomyrska", "rivnenska", "volynska", "kirovohradska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91074, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "kyiv", "kyivska", "rivnenska", "kirovohradska", "cherkaska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91075, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "kyivska", "rivnenska", "kirovohradska", "cherkaska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91076, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["volynska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91077, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["vinnytska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91078, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "kyiv", "zhytomyrska", "cherkaska", "vinnytska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91079, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91080, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["sumska", "kharkivska", "dnipropetrovska", "zaporizka", "odeska", "chernihivska", "zhytomyrska", "cherkaska", "vinnytska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91081, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["sumska", "dnipropetrovska", "odeska", "zhytomyrska", "cherkaska", "kyivska", "vinnytska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91082, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["sumska", "dnipropetrovska", "odeska", "zhytomyrska", "kyivska", "vinnytska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91083, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["sumska", "odeska", "zhytomyrska", "kyivska", "vinnytska", "rivnenska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91084, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["rivnenska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91085, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["zhytomyrska", "volynska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91086, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["zhytomyrska", "volynska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91087, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["zhytomyrska", "volynska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91088, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "raketa_trevoga", "id": 91089, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["odeska"], "count": 2}
+{"channel": "raketa_trevoga", "id": 91090, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91091, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91092, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["chernihivska", "cherkaska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91093, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91094, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["chernihivska", "mykolaivska", "kirovohradska", "zaporizka"], "count": null}
+{"channel": "raketa_trevoga", "id": 91095, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "mykolaivska", "vinnytska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91096, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "mykolaivska", "cherkaska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91098, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "kyivska", "mykolaivska", "cherkaska", "vinnytska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91099, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "kyivska", "zhytomyrska", "mykolaivska", "cherkaska", "vinnytska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91100, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kyivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91101, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["chernihivska", "kyivska", "zhytomyrska", "mykolaivska", "dnipropetrovska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91102, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "zhytomyrska", "mykolaivska", "dnipropetrovska", "poltavska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91103, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["kyivska", "zhytomyrska", "mykolaivska", "dnipropetrovska", "poltavska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91104, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "zhytomyrska", "mykolaivska", "dnipropetrovska", "poltavska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91105, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyiv", "kyivska", "zhytomyrska", "rivnenska", "kirovohradska", "dnipropetrovska", "poltavska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91106, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyiv", "kyivska", "zhytomyrska", "rivnenska", "kirovohradska", "dnipropetrovska", "poltavska", "cherkaska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91107, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "zhytomyrska", "rivnenska", "kirovohradska", "dnipropetrovska", "poltavska", "cherkaska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91108, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "zhytomyrska", "vinnytska", "dnipropetrovska", "poltavska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91109, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "vinnytska", "dnipropetrovska", "poltavska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91110, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "vinnytska", "dnipropetrovska", "cherkaska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91111, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["kyivska", "cherkaska", "zhytomyrska", "dnipropetrovska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91112, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["odeska", "kyivska", "zhytomyrska", "dnipropetrovska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91113, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["odeska", "kyivska", "dnipropetrovska", "mykolaivska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91114, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["odeska", "kyivska", "dnipropetrovska", "mykolaivska", "kirovohradska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91115, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["odeska", "kyivska", "dnipropetrovska", "mykolaivska", "cherkaska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91116, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["odeska", "zaporizka", "cherkaska"], "count": null}
+{"channel": "raketa_trevoga", "id": 91117, "kind": "threat", "weapon": "jet_drone", "now_in": [], "heading_to": ["odeska", "dnipropetrovska", "mykolaivska", "cherkaska"], "count": null}

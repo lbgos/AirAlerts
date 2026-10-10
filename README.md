@@ -48,7 +48,7 @@ Siren starts, model `r8_full_wave`. Brier score (lower is better) vs climatology
 | 3h | 0.135 | 0.206 | 0.89 | 0.041 |
 | 6h | 0.115 | 0.194 | 0.92 | 0.041 |
 
-Forecasts under 10% came true 2–4% of the time. The 0.8–0.9 band at 1h is overconfident (predicted 0.85, observed 0.76).
+Forecasts under 10% came true 2–4% of the time. The 0.8–0.9 band at 1h is overconfident (predicted 0.85, observed 0.73).
 The 15m horizon was added after the other four; its labels were checked blind by an LLM on 40 cases (40/40 agree).
 The rerun with 15m moved the test window half a day later than the first r8 run (live posts were appended).
 
