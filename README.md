@@ -47,13 +47,15 @@ Full tables, including reliability per probability bin and rear oblasts (all exc
 
 | features | skill |
 |:--|--:|
-| time and oblast | 0.162 |
-| + own alert history | 0.217 |
+| time and oblast ¹ | 0.162 |
+| + own alert history ¹ | 0.217 |
 | + threat notes from the alert channel | 0.239 |
 | + neighbor oblasts | 0.275 |
 | + national counts | 0.276 |
 | + alert-wave timing (final) | 0.278 |
 | + radar channels (v1 / v2 / v2 + national) | 0.277 / 0.276 / 0.273 |
+
+¹ Round-1 settings (300 trees, Platt on 21 days); the other rows use the final settings (200 trees, Platt on 7 days).
 
 Calibration: Platt scaling on the last 7 days beat isotonic and longer windows; without calibration ECE doubles.
 `reports/experiments*.md` has every round.
