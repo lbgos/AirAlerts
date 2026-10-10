@@ -5,7 +5,7 @@ import pickle
 import pandas as pd
 
 from .config import HISTORY_START, RAW_DIR, ROOT
-from .dataset import HORIZONS, build_table, load_events
+from .dataset import HORIZONS, STEP, build_table, load_events
 from .radar import label_history
 from .model import Config, Split, evaluate, fit
 
@@ -19,7 +19,7 @@ RADAR_LABELS = ROOT / "labels" / "radar_v2"
 STUDENT_DAYS_BEFORE_END = 28
 
 
-def load_table(with_radar: bool = True) -> pd.DataFrame:
+def load_table(with_radar: bool = True, step: pd.Timedelta = STEP) -> pd.DataFrame:
     events = load_events(RAW_DIR / f"{LABEL_CHANNEL}.jsonl")
     end = events["ts"].max()
     radar = None
@@ -28,11 +28,11 @@ def load_table(with_radar: bool = True) -> pd.DataFrame:
     # Features need up to 24h of history, so the first forecast time is a day after the data starts.
     start = max(events["ts"].min(), pd.Timestamp(HISTORY_START)) + pd.Timedelta(hours=24)
     # Rows under alert are kept (all-clear models); start models filter them out in Split.periods.
-    return build_table(events, start, end, radar=radar, keep_active=True)
+    return build_table(events, start, end, radar=radar, keep_active=True, step=step)
 
 
 def train(config: Config) -> None:
-    table = load_table()
+    table = load_table(step=pd.Timedelta(minutes=config.step_minutes))
     test_end = table["ts"].max()
     models, metrics, rel = evaluate(table, test_end, config)
     suffix = "" if config.target == "start" else "_clear"
@@ -42,7 +42,7 @@ def train(config: Config) -> None:
         f"# Final test: {config.name}",
         "",
         f"Target: {'siren starts (rows not under alert)' if config.target == 'start' else 'all-clear (rows under alert)'}. "
-        f"Data until {test_end:%Y-%m-%d %H:%M} UTC, {len(table):,} rows. Test window: last 14 days, "
+        f"Data until {test_end:%Y-%m-%d %H:%M} UTC, {len(table):,} rows, forecast every {config.step_minutes} min. Test window: last 14 days, "
         f"calibration: {config.calib_days} days before it ({config.calibration}), training: everything earlier.",
         "",
         "Lower is better for brier, log_loss, ece; higher for auc.",
@@ -61,7 +61,7 @@ def fit_live(config: Config, clear_config: Config) -> None:
     """
     if any(g in c.groups for c in (config, clear_config) for g in ("radar", "clear_radar")):
         raise SystemExit("live mode reads only the alert channel; pick configs without radar groups")
-    table = load_table(with_radar=False)
+    table = load_table(with_radar=False, step=pd.Timedelta(minutes=min(config.step_minutes, clear_config.step_minutes)))
     end = table["ts"].max()
 
     def fit_all(c: Config) -> dict:

@@ -3,6 +3,7 @@
 import json
 
 import pandas as pd
+import pytest
 
 from ua_alert_forecast.dataset import build_table, feature_columns, load_events
 from ua_alert_forecast.geo import NEIGHBORS, REGIONS
@@ -25,13 +26,14 @@ def events_from(posts, tmp_path):
     return load_events(path)
 
 
-def test_features_ignore_the_future(tmp_path):
+@pytest.mark.parametrize("step", [pd.Timedelta(minutes=15), pd.Timedelta(minutes=5)])
+def test_features_ignore_the_future(tmp_path, step):
     start, end = pd.Timestamp("2026-10-01T00:00Z"), pd.Timestamp("2026-10-01T04:00Z")
-    full = build_table(events_from(POSTS, tmp_path), start, end)
+    full = build_table(events_from(POSTS, tmp_path), start, end, step=step)
     for cutoff in ["2026-10-01T00:45Z", "2026-10-01T01:30Z", "2026-10-01T03:00Z"]:
         cutoff = pd.Timestamp(cutoff)
         past = [p for p in POSTS if pd.Timestamp(p[0]) < cutoff]
-        cut = build_table(events_from(past, tmp_path), start, end)
+        cut = build_table(events_from(past, tmp_path), start, end, step=step)
         cols = feature_columns(full)
         a = full[full.ts <= cutoff][cols].reset_index(drop=True)
         b = cut[cut.ts <= cutoff][cols].reset_index(drop=True)
@@ -45,6 +47,8 @@ def test_labels_and_active_rows(tmp_path):
     assert poltava.loc["2026-10-01T00:45Z", "y_30m"] == 1
     assert poltava.loc["2026-10-01T00:30Z", "y_30m"] == 0
     assert poltava.loc["2026-10-01T00:45Z", "nb_starts_30m"] == 1  # Sumy started at 00:20
+    assert poltava.loc["2026-10-01T00:30Z", "rc_nb_starts_10m"] == 1 and poltava.loc["2026-10-01T00:45Z", "rc_nb_starts_10m"] == 0
+    assert poltava.loc["2026-10-01T01:00Z", "rc_min_since_threat"] == 10  # Lubny drone note at 00:50
     # Under alert 01:05-02:30: those rows are dropped.
     assert pd.Timestamp("2026-10-01T01:15Z") not in poltava.index
     assert pd.Timestamp("2026-10-01T02:30Z") not in poltava.index  # end at exactly 02:30 is not yet known

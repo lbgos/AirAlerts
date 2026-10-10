@@ -26,10 +26,13 @@ HORIZONS: dict[Horizon, pd.Timedelta] = {
     "6h": pd.Timedelta(hours=6),
 }
 STEP = pd.Timedelta(minutes=15)
-# A place with no matching end post is treated as cleared after this long (same rule as the Vadimkin processor).
-ALERT_EXPIRY = timedelta(hours=3)
+# A place stays under alert until the channel posts its all-clear. This is only a safety net for lost posts: in the
+# last 60 days just 26 alerts never got an all-clear post, while 14% of real alerts lasted over 3 h and 5.5% over 6 h
+# (the earlier 3 h rule cut those short and showed oblasts as clear during long alerts).
+ALERT_EXPIRY = timedelta(hours=24)
 THREAT_GROUPS = {"drone": ["drone"], "kab": ["kab"], "missile": ["high_speed"], "other": ["shelling", "explosions", "recon", "aviation"]}
 WINDOWS = {"30m": pd.Timedelta(minutes=30), "1h": pd.Timedelta(hours=1), "3h": pd.Timedelta(hours=3)}
+RECENT = pd.Timedelta(minutes=10)  # window of the last-minutes features (group "recent"), aimed at the 15m horizon
 
 
 def events_from_posts(posts: Iterable[dict]) -> pd.DataFrame:
@@ -95,7 +98,7 @@ def count_before(times: np.ndarray, t: np.ndarray, window: pd.Timedelta) -> np.n
     return np.searchsorted(times, t, side="left") - np.searchsorted(times, t - window.value, side="left")
 
 
-def minutes_since(times: np.ndarray, t: np.ndarray, cap_minutes: float = 24 * 60) -> np.ndarray:
+def minutes_since(times: np.ndarray, t: np.ndarray, cap_minutes: float = 24 * 60.0) -> np.ndarray:
     if len(times) == 0:
         return np.full(len(t), cap_minutes)
     i = np.searchsorted(times, t, side="left") - 1
@@ -122,8 +125,9 @@ def build_table(
     radar: pd.DataFrame | None = None,
     grid: pd.DatetimeIndex | None = None,
     keep_active: bool = False,
+    step: pd.Timedelta = STEP,
 ) -> pd.DataFrame:
-    """Feature + label table on a 15-minute grid in [start, end). Labels need data up to end + 6h.
+    """Feature + label table on a grid of `step` (default 15 minutes) in [start, end). Labels need data up to end + 6h.
 
     Live mode passes `grid` (the forecast times, e.g. just "now") and `keep_active=True` to get an `active`
     column instead of dropping regions already under alert.
@@ -132,7 +136,7 @@ def build_table(
     neighbor sirens don't carry.
     """
     if grid is None:
-        grid = pd.date_range(start.ceil(STEP), end, freq=STEP, inclusive="left", tz="UTC", unit="ns")
+        grid = pd.date_range(start.ceil(step), end, freq=step, inclusive="left", tz="UTC", unit="ns")
     t = grid.asi8
     intervals = alert_intervals(events)
     active = {r: is_active(intervals[r], t) for r in REGIONS}
@@ -147,6 +151,9 @@ def build_table(
         for g, kinds in THREAT_GROUPS.items()
     }
     ends = {r: times((events["kind"] == "end") & (events["oblast"] == r)) for r in REGIONS}
+    any_threats = {r: times((events["kind"] == "threat") & (events["oblast"] == r)) for r in REGIONS}
+    all_threats = times(events["kind"] == "threat")
+    active_15m_ago = {r: is_active(intervals[r], t - pd.Timedelta(minutes=15).value) for r in REGIONS}
     all_ends = times(events["kind"] == "end")
     all_starts = times(events["kind"] == "start")
     all_drones = times((events["kind"] == "threat") & (events["detail"] == "drone"))
@@ -206,6 +213,27 @@ def build_table(
             f[f"wave_ring2_starts_{wname}"] = np.sum([count_before(starts[n], t, WINDOWS[wname]) for n in ring2], axis=0) if ring2 else 0
         for wname, w in WINDOWS.items():
             f[f"nb_starts_{wname}"] = np.sum([count_before(starts[n], t, w) for n in nb], axis=0) if nb else 0
+        # Last minutes, for the 15m horizon: how fresh the latest threat note / all-clear is here and next door,
+        # what happened in the last 10 minutes, and which neighbors went under alert in the last 15.
+        def nb_min(series: dict[str, np.ndarray]) -> np.ndarray:
+            return np.min([minutes_since(series[n], t) for n in nb], axis=0) if nb else np.full(len(t), 24 * 60.0)
+
+        f["rc_min_since_threat"] = minutes_since(any_threats[r], t)
+        f["rc_nb_min_since_threat"] = nb_min(any_threats)
+        for g in ("drone", "kab", "missile"):
+            f[f"rc_min_since_{g}"] = minutes_since(threats[(r, g)], t)
+            f[f"rc_nb_min_since_{g}"] = nb_min({n: threats[(n, g)] for n in nb})
+        f["rc_min_since_end"] = minutes_since(ends[r], t)
+        f["rc_nb_min_since_end"] = nb_min(ends)
+        f["rc_threats_10m"] = count_before(any_threats[r], t, RECENT)
+        f["rc_nb_threats_10m"] = np.sum([count_before(any_threats[n], t, RECENT) for n in nb], axis=0) if nb else 0
+        f["rc_nb_starts_10m"] = np.sum([count_before(starts[n], t, RECENT) for n in nb], axis=0) if nb else 0
+        f["rc_ring2_starts_10m"] = np.sum([count_before(starts[n], t, RECENT) for n in ring2], axis=0) if ring2 else 0
+        f["rc_national_starts_10m"] = count_before(all_starts, t, RECENT)
+        f["rc_national_threats_10m"] = count_before(all_threats, t, RECENT)
+        f["rc_national_ends_10m"] = count_before(all_ends, t, RECENT)
+        f["rc_nb_newly_active_15m"] = np.sum([active[n] & ~active_15m_ago[n] for n in nb], axis=0) if nb else 0
+        f["rc_national_active_change_15m"] = national_active - np.sum([active_15m_ago[n] for n in REGIONS], axis=0)
         if radar is not None:
             for role in roles:
                 for g in RADAR_GROUPS:
@@ -271,4 +299,5 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "wave": [c for c in cols if c.startswith("wave_")],
         "clear": [c for c in cols if c.startswith("clr_") and not c.startswith("clr_radar_")],
         "clear_radar": [c for c in cols if c.startswith("clr_radar_")],
+        "recent": [c for c in cols if c.startswith("rc_")],
     }

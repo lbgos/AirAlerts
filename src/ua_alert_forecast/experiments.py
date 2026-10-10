@@ -7,8 +7,9 @@ Only the winner is then evaluated on the final test by `forecast train --config 
 
 import pandas as pd
 
+from .dataset import HORIZONS
 from .geo import FRONTLINE
-from .model import Config, evaluate
+from .model import BOUND_Z, Config, evaluate
 from .train import REPORT_DIR, load_table
 
 FULL = ("time", "history", "threats", "neighbors", "national")
@@ -61,6 +62,29 @@ CONFIGS = [
     Config("c1_clear_time", groups=("time", "clear"), lgbm=SMALL, calib_days=7, target="clear"),
     Config("c1_clear_full", groups=FULL + ("wave", "clear"), lgbm=SMALL, calib_days=7, target="clear"),
     Config("c1_clear_full_radar", groups=FULL + ("wave", "clear", "radar", "clear_radar"), lgbm=SMALL, calib_days=7, target="clear"),
+    # Round p1 (user: punish confident wrong forecasts): conservative calibration caps each forecast at the 99% Wilson
+    # bound of how often forecasts at that level came true on the calibration days.
+    Config("p1_start_conservative", groups=FULL + ("wave",), lgbm=SMALL, calib_days=7, calibration="conservative"),
+    Config("p1_clear_conservative", groups=FULL + ("wave", "clear"), lgbm=SMALL, calib_days=7, calibration="conservative", target="clear"),
+    # Round f1 (user: the 15-minute forecast matters most). Run on a 5-minute table (live forecasts every 30 s, earlier
+    # rounds trained only on :00/:15/:30/:45) and scored at 15m by `points` (confident right x3, confident wrong x10).
+    # "_g15" trains on the old 15-minute grid only; "recent" = last-minutes features; z = conservative bound width.
+    *[
+        Config(f"f1{t}_{name}", groups=FULL + ("wave",) + (("clear",) if t == "c" else ()) + extra, lgbm=lgbm, calib_days=7,
+               calibration=cal, bound_z=z, step_minutes=5, train_grid_minutes=grid, target="clear" if t == "c" else "start")
+        for t in ("s", "c")
+        for name, extra, grid, lgbm, cal, z in [
+            ("base_g15", (), 15, SMALL, "platt", BOUND_Z),
+            ("base", (), None, SMALL, "platt", BOUND_Z),
+            ("base_cons", (), None, SMALL, "conservative", BOUND_Z),
+            ("recent_g15", ("recent",), 15, SMALL, "platt", BOUND_Z),
+            ("recent", ("recent",), None, SMALL, "platt", BOUND_Z),
+            ("recent_default", ("recent",), None, DEFAULT, "platt", BOUND_Z),
+            ("recent_cons", ("recent",), None, SMALL, "conservative", BOUND_Z),
+            ("recent_cons_z1.6", ("recent",), None, SMALL, "conservative", 1.645),
+            ("recent_cons_z1", ("recent",), None, SMALL, "conservative", 1.0),
+        ]
+    ],
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 
@@ -70,21 +94,24 @@ def summarize(res: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     summary = (
         res.groupby("predictor", sort=False)
         .agg(skill=("skill", "mean"), brier=("brier", "mean"), ece=("ece", "mean"), auc=("auc", "mean"),
+             points=("points", "mean"), conf_right=("conf_right", "mean"), penalty=("penalty", "mean"), conf_wrong=("conf_wrong", "mean"), conf_promised=("conf_promised", "mean"),
              low_pred=("low_pred", "mean"), low_obs=("low_obs", "mean"), high_pred=("high_pred", "mean"),
              high_obs=("high_obs", "mean"), n_high=("n_high", "sum"))
         .sort_values(["skill", "ece"], ascending=[False, True])
     )
-    per_h = res.pivot(index="predictor", columns="horizon", values=["skill", "ece"]).loc[summary.index]
+    per_h = res.pivot(index="predictor", columns="horizon", values=["skill", "points", "penalty", "conf_wrong"]).loc[summary.index]
     per_h.columns = [f"{m}_{h}" for m, h in per_h.columns]
     return summary, per_h
 
 
-def run(only: list[str] | None = None, report: str = "experiments") -> None:
-    table = load_table()
+def run(only: list[str] | None = None, report: str = "experiments", step_minutes: int = 15, horizons: list[str] | None = None) -> None:
+    configs = [c for c in CONFIGS if not only or c.name in only]
+    radar = any(g in c.groups for c in configs for g in ("radar", "clear_radar"))
+    table = load_table(with_radar=radar, step=pd.Timedelta(minutes=step_minutes))
     dev_end = table["ts"].max() - pd.Timedelta(days=14)
     rows = []
-    for config in [c for c in CONFIGS if not only or c.name in only]:
-        _, metrics, _ = evaluate(table, dev_end, config)
+    for config in configs:
+        _, metrics, _ = evaluate(table, dev_end, config, horizons=tuple(horizons or HORIZONS))
         clim = metrics[metrics.predictor == "climatology"].set_index(["subset", "horizon"])["brier"]
         own = metrics[metrics.predictor == config.name].copy()
         own["skill"] = 1 - own["brier"] / pd.MultiIndex.from_frame(own[["subset", "horizon"]]).map(clim)
@@ -93,9 +120,13 @@ def run(only: list[str] | None = None, report: str = "experiments") -> None:
     res = pd.concat(rows)
     text = (
         "# Experiments (dev window)\n\n"
-        f"Dev test window: 14 days ending {dev_end:%Y-%m-%d %H:%M} UTC. Final test window not used here.\n\n"
+        f"Dev test window: 14 days ending {dev_end:%Y-%m-%d %H:%M} UTC, forecast every {step_minutes} min. Final test window not used here.\n\n"
         "skill = 1 - brier / brier(climatology), higher is better. ece = calibration error, lower is better.\n"
         "low_* / high_*: mean predicted vs observed among forecasts below 10% / at or above 90%.\n"
+        "penalty: log loss with confident wrong forecasts (<= 20% and it happened, >= 80% and it did not) counted 10x.\n"
+        "conf_wrong: share of confident forecasts that were wrong; conf_promised: share they promised to be wrong.\n"
+        "points: log2 score gained over climatology per 100 forecasts, confident right x3, confident wrong x10; higher is better.\n"
+        "conf_right: share of all forecasts that were confident and right.\n"
         f"rear = all regions except {', '.join(sorted(FRONTLINE))}.\n"
     )
     for subset, title in [("all", "All regions"), ("rear", "Rear regions")]:

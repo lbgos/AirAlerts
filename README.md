@@ -28,48 +28,72 @@ Older datasets (2022–2024) were not used: tactics changed, and recent data mat
 
 ## Method
 
-- One row per (oblast, time T) on a 15-minute grid, only when the oblast is not already under alert.
+- One row per (oblast, time T) on a 5-minute grid (live mode forecasts every 30 s).
+- An oblast is under alert from its first siren until the channel's all-clear for every place in it. A 24 h expiry
+  only covers lost posts (in the last 60 days 26 alerts never got an all-clear; 14% of alerts last over 3 h).
 - Features use only events before T: time of day, the oblast's recent alerts and threats, neighbor oblasts
-  (alerts, threats, minutes since the latest neighbor siren), second-ring neighbors, national counts.
-- Label: did a siren start in (T, T + horizon].
-- LightGBM per horizon, recent days weighted more (60-day half-life), Platt calibration on the 7 days before the test window.
+  (alerts, threats, minutes since the latest neighbor siren), second-ring neighbors, national counts, and the last
+  minutes (minutes since the latest threat note / all-clear here and next door, last-10-minute counts, neighbors that
+  went under alert in the last 15 min). All-clear rows add how long the alert has run and recent partial all-clears.
+- Labels: a siren starts in (T, T + horizon] (oblasts not under alert); the alert ends in (T, T + horizon] (under alert).
+- LightGBM per horizon, recent days weighted more (60-day half-life), calibrated on the 7 days before the test window.
 - Time split train | calibrate | test, purged so no label window crosses a boundary. Model selection used a separate
-  14-day dev window; the final test window (last 14 days) was run once.
+  14-day dev window; the final test window (last 14 days) was run once per chosen model.
 
-## Results (final test: last 14 days, ending 2026-10-10)
+### Overconfidence
 
-Siren starts, model `r8_full_wave`. Brier score (lower is better) vs climatology (rate per oblast and hour of day):
+- Calibration is conservative: Platt scaling, then on the calibration days forecasts are grouped into 20 bins and no
+  forecast may be more certain than the 99% Wilson bound of how often that bin came true. Few cases or past
+  overconfidence pull a forecast toward 50%.
+- `penalty`: log loss where confident forecasts (<= 20% or >= 80%) that turned out wrong count 10x.
+- `points` (higher is better): log2 score gained over climatology per 100 forecasts; confident forecasts that were
+  right count 3x, confident ones that were wrong 10x. Used to pick the 15-minute model.
 
-| horizon | model | climatology | AUC | calibration error (ECE) |
-|:--|--:|--:|--:|--:|
-| 15m | 0.061 | 0.070 | 0.87 | 0.006 |
-| 30m | 0.093 | 0.114 | 0.86 | 0.013 |
-| 1h | 0.126 | 0.165 | 0.86 | 0.025 |
-| 3h | 0.135 | 0.206 | 0.89 | 0.041 |
-| 6h | 0.115 | 0.194 | 0.92 | 0.041 |
+## Results (final test: last 14 days, ending 2026-10-10 16:20 UTC)
 
-Forecasts under 10% came true 2–4% of the time. The 0.8–0.9 band at 1h is overconfident (predicted 0.85, observed 0.73).
-The 15m horizon was added after the other four; its labels were checked blind by an LLM on 40 cases (40/40 agree).
-The rerun with 15m moved the test window half a day later than the first r8 run (live posts were appended).
+Siren starts, model `f1s_recent_cons`. Brier score (lower is better) vs climatology (rate per oblast and hour of day).
+"Confident wrong" is the share of forecasts at <= 20% or >= 80% that were wrong, next to the share they promised:
 
-All-clear, model `c1_clear_full` (rows under alert; label: the oblast's alert ends within the horizon):
+| horizon | model | climatology | AUC | calibration error (ECE) | confident wrong / promised |
+|:--|--:|--:|--:|--:|--:|
+| 15m | 0.058 | 0.069 | 0.89 | 0.018 | 2.8% / 4.4% |
+| 30m | 0.090 | 0.114 | 0.88 | 0.024 | 3.0% / 3.6% |
+| 1h | 0.118 | 0.164 | 0.88 | 0.025 | 5.1% / 4.6% |
+| 3h | 0.127 | 0.207 | 0.90 | 0.030 | 8.9% / 6.7% |
+| 6h | 0.112 | 0.200 | 0.92 | 0.037 | 7.6% / 5.9% |
 
-| horizon | model | climatology | AUC | alerts that ended |
-|:--|--:|--:|--:|--:|
-| 15m | 0.126 | 0.139 | 0.72 | 17% |
-| 30m | 0.185 | 0.205 | 0.72 | 31% |
-| 1h | 0.207 | 0.228 | 0.74 | 51% |
-| 3h | 0.095 | 0.095 | 0.78 | 88% |
-| 6h | 0.022 | 0.022 | 0.85 | 98% |
+All-clear, model `f1c_recent_cons` (oblasts under alert):
 
-All-clear is harder than siren starts: about 10% better than climatology up to 1 h, no gain at 3–6 h (almost every alert
-ends within 3 h). 79–86% of alerts end with an explicit all-clear post; the rest end by the 3 h expiry rule.
-Radar features gave +0.001 mean skill on the dev window (better at 15–30 min, worse at 3–6 h); not used, since live
-mode would then need the radar channels and classifier.
-Full tables, including reliability per probability bin and rear oblasts (all except the six front-line/border oblasts):
-`reports/metrics.md`. The previous model without wave features: `reports/metrics_r2.md`.
+| horizon | model | climatology | AUC | alerts that ended | confident wrong / promised |
+|:--|--:|--:|--:|--:|--:|
+| 15m | 0.099 | 0.105 | 0.77 | 13% | 6.4% / 7.8% |
+| 30m | 0.146 | 0.159 | 0.78 | 23% | 6.4% / 7.2% |
+| 1h | 0.172 | 0.190 | 0.81 | 37% | 7.9% / 8.5% |
+| 3h | 0.154 | 0.167 | 0.85 | 62% | 6.6% / 9.1% |
+| 6h | 0.118 | 0.131 | 0.88 | 76% | 3.9% / 12.1% |
 
-## What helped (dev window, skill = 1 − Brier / Brier of climatology, mean of the four horizons)
+The 15-minute forecast: sirens start in 8% of 15-minute windows. Forecasts of 30% or more came true 42% of the time
+and preceded 38% of sirens; forecasts under 10% came true 1% of the time (`reports/accuracy.md`, also Kyiv).
+On the dev window only 5% of 15-minute sirens came with no threat note or siren here or next door in the previous
+30 min, so the limit is telling which nearby activity turns into a siren here, not missing activity.
+
+Previous models on the same window: `reports/metrics_p1.md` (no last-minutes features, 15-minute grid; 15m Brier
+0.060, all-clear 0.102). Models before the alert-duration fix (3 h expiry): `reports/metrics_r8_3h_rule.md`,
+`reports/metrics_clear_c1_3h_rule.md`.
+
+### 15-minute round (dev window, 15m horizon)
+
+| siren starts | skill | points |
+|:--|--:|--:|
+| previous features, trained on a 15-minute grid | 0.126 | 63.3 |
+| + 5-minute grid | 0.125 | 63.9 |
+| + last-minutes features | 0.134 | 65.0 |
+| + conservative calibration (final) | 0.135 | 74.7 |
+
+All-clear, same steps: skill 0.069 → 0.067 → 0.075 → 0.073, points −2.3 → −1.6 → −1.1 → 15.4.
+`reports/experiments_f1.md`, `reports/experiments_f1_all.md` (all horizons: the final models are no worse at 30m–6h).
+
+## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
 
 | features | skill |
 |:--|--:|
@@ -78,12 +102,13 @@ Full tables, including reliability per probability bin and rear oblasts (all exc
 | + threat notes from the alert channel | 0.239 |
 | + neighbor oblasts | 0.275 |
 | + national counts | 0.276 |
-| + alert-wave timing (final) | 0.278 |
+| + alert-wave timing | 0.278 |
 | + radar channels (v1 / v2 / v2 + national) | 0.277 / 0.276 / 0.273 |
 
 ¹ Round-1 settings (300 trees, Platt on 21 days); the other rows use the final settings (200 trees, Platt on 7 days).
 
 Calibration: Platt scaling on the last 7 days beat isotonic and longer windows; without calibration ECE doubles.
+The final models add the last-minutes features and the conservative cap on top (sections above).
 `reports/experiments*.md` has every round.
 
 Radar channels carry real signal (alone they beat the alert channel's threat notes, 0.249 vs 0.239) but add nothing on top of
@@ -97,11 +122,12 @@ uv sync
 cp .env.example .env        # Telegram api_id / api_hash from my.telegram.org
 uv run forecast login       # QR login
 uv run forecast scrape
-uv run forecast train --config r8_full_wave
+uv run forecast train --config f1s_recent_cons
+uv run forecast train --config f1c_recent_cons
 uv run pytest
 
 # live mode: refit both models on all data, then poll + serve http://<host>:8790; score the log later
-uv run forecast fit-live --config r8_full_wave --clear-config c1_clear_full
+uv run forecast fit-live --config f1s_recent_cons --clear-config f1c_recent_cons
 uv run forecast live --host 127.0.0.1 --port 8790
 uv run forecast score-live
 ```
