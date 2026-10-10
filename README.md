@@ -3,7 +3,8 @@
 Forecasts the probability that an air raid siren **starts** in a Ukrainian oblast within the next 30 min / 1 h / 3 h / 6 h.
 Calibrated: a forecast of 70% should come true about 70% of the time.
 
-Work in progress: model and evaluation are done; live mode and the web page are next.
+Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast at the current time and serves a one-page UI
+(Ukrainian/English, horizon dropdown, oblasts under alert listed separately).
 
 ## Data
 
@@ -73,4 +74,11 @@ uv run forecast login       # QR login
 uv run forecast scrape
 uv run forecast train --config r8_full_wave
 uv run pytest
+
+# live mode: refit on all data, then poll + serve http://<host>:8790
+uv run forecast fit-live --config r8_full_wave
+uv run forecast live --host 127.0.0.1 --port 8790
 ```
+
+Live mode reads only the alert channel: the final model uses no radar features. New posts are appended to
+`data/raw/UkraineAlarmSignal.jsonl`, so the next `fit-live` trains on them.

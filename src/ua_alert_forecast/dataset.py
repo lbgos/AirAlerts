@@ -6,7 +6,7 @@ and the UI shows "alert active now" instead.
 """
 
 import json
-from collections.abc import Iterator
+from collections.abc import Iterable
 from datetime import timedelta
 from pathlib import Path
 from typing import Literal
@@ -14,7 +14,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-from .alerts import AlertEvent, parse_post
+from .alerts import parse_post
 from .geo import NEIGHBORS, REGIONS, RING2
 
 Horizon = Literal["30m", "1h", "3h", "6h"]
@@ -31,19 +31,19 @@ THREAT_GROUPS = {"drone": ["drone"], "kab": ["kab"], "missile": ["high_speed"], 
 WINDOWS = {"30m": pd.Timedelta(minutes=30), "1h": pd.Timedelta(hours=1), "3h": pd.Timedelta(hours=3)}
 
 
-def load_events(path: Path) -> pd.DataFrame:
-    """Parse a raw channel dump (data/raw/<channel>.jsonl) into a sorted event table."""
-
-    def rows() -> Iterator[AlertEvent]:
-        with path.open() as f:
-            for line in f:
-                post = json.loads(line)
-                yield from parse_post(post["text"], pd.Timestamp(post["date"]).to_pydatetime())
-
-    df = pd.DataFrame([e.__dict__ for e in rows()])
+def events_from_posts(posts: Iterable[dict]) -> pd.DataFrame:
+    """Parse raw posts ({"date", "text", ...} as saved by the scraper) into a sorted event table."""
+    rows = [e.__dict__ for post in posts for e in parse_post(post["text"], pd.Timestamp(post["date"]).to_pydatetime())]
+    df = pd.DataFrame(rows, columns=["ts", "kind", "detail", "oblast", "place"])
     # pandas 3 defaults to microseconds; everything here works in int64 nanoseconds (Timestamp.value).
     df["ts"] = pd.to_datetime(df["ts"], utc=True).dt.as_unit("ns")
     return df.sort_values("ts", kind="stable").reset_index(drop=True)
+
+
+def load_events(path: Path) -> pd.DataFrame:
+    """Parse a raw channel dump (data/raw/<channel>.jsonl) into a sorted event table."""
+    with path.open() as f:
+        return events_from_posts(json.loads(line) for line in f)
 
 
 def alert_intervals(events: pd.DataFrame) -> dict[str, np.ndarray]:
@@ -115,14 +115,23 @@ RADAR_NATIONAL_WINDOWS = {"1h": pd.Timedelta(hours=1), "3h": pd.Timedelta(hours=
 
 
 def build_table(
-    events: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp, radar: pd.DataFrame | None = None
+    events: pd.DataFrame,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    radar: pd.DataFrame | None = None,
+    grid: pd.DatetimeIndex | None = None,
+    keep_active: bool = False,
 ) -> pd.DataFrame:
     """Feature + label table on a 15-minute grid in [start, end). Labels need data up to end + 6h.
+
+    Live mode passes `grid` (the forecast times, e.g. just "now") and `keep_active=True` to get an `active`
+    column instead of dropping regions already under alert.
 
     `radar` (optional): output of `radar.to_events` (rows per post, role and oblast, with weights). Role "heading_to" is where an object is going but not yet: the direction signal that
     neighbor sirens don't carry.
     """
-    grid = pd.date_range(start.ceil(STEP), end, freq=STEP, inclusive="left", tz="UTC", unit="ns")
+    if grid is None:
+        grid = pd.date_range(start.ceil(STEP), end, freq=STEP, inclusive="left", tz="UTC", unit="ns")
     t = grid.asi8
     intervals = alert_intervals(events)
     active = {r: is_active(intervals[r], t) for r in REGIONS}
@@ -210,10 +219,12 @@ def build_table(
     table = pd.concat(frames, ignore_index=True)
     table["ts"] = pd.to_datetime(table["ts"], utc=True)
     table["region"] = table["region"].astype(pd.CategoricalDtype(REGIONS))
+    if keep_active:
+        return table
     return table[~table["active"]].drop(columns="active").reset_index(drop=True)
 
 
-FEATURES_EXCLUDED = {"ts", *(f"y_{h}" for h in HORIZONS)}
+FEATURES_EXCLUDED = {"ts", "active", *(f"y_{h}" for h in HORIZONS)}
 
 
 def feature_columns(table: pd.DataFrame) -> list[str]:

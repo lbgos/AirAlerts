@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>AirAlerts</title>
+<style>
+  :root { --dim: #8e8e93; --line: #1c1c1e; --red: #ff453a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #000; color: #fff; }
+  body {
+    font: 15px/1.35 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    padding: max(14px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    max-width: 640px; margin: 0 auto;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-size: 20px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+  button.lang { background: none; border: 0; color: var(--dim); font: inherit; padding: 4px 0; cursor: pointer; }
+  .controls { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; }
+  select {
+    appearance: none; -webkit-appearance: none; background: #000; color: #fff; font: inherit; font-weight: 600;
+    border: 1px solid #3a3a3c; border-radius: 8px; padding: 7px 30px 7px 11px;
+    background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%);
+    background-position: right 14px top 50%, right 9px top 50%; background-size: 5px 5px; background-repeat: no-repeat;
+  }
+  .what { color: var(--dim); font-size: 13px; }
+  ol { list-style: none; margin: 8px 0 0; padding: 0; }
+  li {
+    display: grid; grid-template-columns: minmax(0, 1fr) 34% 3.6em; align-items: center; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--line);
+  }
+  .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: 3px; }
+  .pct { text-align: right; font-weight: 600; }
+  li.active { padding: 6px 0; }
+  li.active .name { color: var(--red); }
+  li.active .state { grid-column: 2 / 4; text-align: right; color: var(--red); font-size: 13px; }
+  footer { margin-top: 16px; color: var(--dim); font-size: 12px; line-height: 1.5; }
+  .stale { color: #ff9f0a; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title"></h1>
+  <button class="lang" id="lang"></button>
+</header>
+<div class="controls">
+  <select id="horizon" aria-label="horizon"></select>
+  <span class="what" id="what"></span>
+</div>
+<ol id="list"></ol>
+<footer id="foot"></footer>
+
+<script>
+const NAMES = {
+  vinnytska: ["Вінницька", "Vinnytsia"], volynska: ["Волинська", "Volyn"], dnipropetrovska: ["Дніпропетровська", "Dnipropetrovsk"],
+  donetska: ["Донецька", "Donetsk"], zhytomyrska: ["Житомирська", "Zhytomyr"], zakarpatska: ["Закарпатська", "Zakarpattia"],
+  zaporizka: ["Запорізька", "Zaporizhzhia"], ivano_frankivska: ["Івано-Франківська", "Ivano-Frankivsk"],
+  kyivska: ["Київська", "Kyiv oblast"], kyiv: ["м. Київ", "Kyiv city"], kirovohradska: ["Кіровоградська", "Kirovohrad"],
+  luhanska: ["Луганська", "Luhansk"], lvivska: ["Львівська", "Lviv"], mykolaivska: ["Миколаївська", "Mykolaiv"],
+  odeska: ["Одеська", "Odesa"], poltavska: ["Полтавська", "Poltava"], rivnenska: ["Рівненська", "Rivne"],
+  sumska: ["Сумська", "Sumy"], ternopilska: ["Тернопільська", "Ternopil"], kharkivska: ["Харківська", "Kharkiv"],
+  khersonska: ["Херсонська", "Kherson"], khmelnytska: ["Хмельницька", "Khmelnytskyi"], cherkaska: ["Черкаська", "Cherkasy"],
+  chernivetska: ["Чернівецька", "Chernivtsi"], chernihivska: ["Чернігівська", "Chernihiv"],
+};
+const T = {
+  uk: {
+    title: "Прогноз тривог", other: "EN", what: "ймовірність, що тривога почнеться",
+    h: { "30m": "30 хв", "1h": "1 год", "3h": "3 год", "6h": "6 год" },
+    alert: "тривога", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
+    stale: "дані застаріли", model: "модель", trained: "навчена до",
+    note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени.",
+  },
+  en: {
+    title: "Air alert forecast", other: "УКР", what: "chance a siren starts within",
+    h: { "30m": "30 min", "1h": "1 hour", "3h": "3 hours", "6h": "6 hours" },
+    alert: "alert", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
+    stale: "data is stale", model: "model", trained: "trained until",
+    note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens.",
+  },
+};
+let lang = localStorage.getItem("lang") || "uk";
+let horizon = localStorage.getItem("horizon") || "1h";
+let state = null;
+
+const $ = (id) => document.getElementById(id);
+const time = (iso) => new Date(iso).toLocaleTimeString(lang === "uk" ? "uk-UA" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+const date = (iso) => new Date(iso).toLocaleDateString(lang === "uk" ? "uk-UA" : "en-GB", { day: "2-digit", month: "2-digit" });
+const pct = (p) => (p < 0.01 ? "<1%" : Math.round(p * 100) + "%");
+const duration = (m, t) => (m < 60 ? `${m} ${t.min}` : `${Math.floor(m / 60)} ${t.hr} ${m % 60} ${t.min}`);
+// Grey for unlikely, amber in the middle, red when likely.
+const color = (p) => (p < 0.15 ? "#636366" : p < 0.4 ? "#ffd60a" : p < 0.7 ? "#ff9f0a" : "#ff453a");
+
+function render() {
+  const t = T[lang];
+  document.documentElement.lang = lang;
+  $("title").textContent = t.title;
+  $("lang").textContent = t.other;
+  $("what").textContent = t.what;
+  $("horizon").innerHTML = Object.entries(t.h)
+    .map(([k, v]) => `<option value="${k}"${k === horizon ? " selected" : ""}>${v}</option>`).join("");
+  if (!state) return;
+
+  const rows = [...state.regions].sort((a, b) =>
+    a.active !== b.active ? (a.active ? 1 : -1) : a.active ? b.alert_minutes - a.alert_minutes : b.p[horizon] - a.p[horizon]);
+  $("list").innerHTML = rows.map((r) => {
+    const name = NAMES[r.id]?.[lang === "uk" ? 0 : 1] ?? r.id;
+    if (r.active) return `<li class="active"><span class="name">${name}</span><span class="state">${t.alert} · ${duration(r.alert_minutes, t)}</span></li>`;
+    const p = r.p[horizon];
+    return `<li><span class="name">${name}</span><span class="bar"><i style="width:${Math.max(p * 100, 1)}%;background:${color(p)}"></i></span><span class="pct">${pct(p)}</span></li>`;
+  }).join("");
+
+  const stale = Date.now() - new Date(state.generated_at) > 3 * 60 * 1000;
+  $("foot").innerHTML =
+    `<div${stale ? ' class="stale"' : ""}>${t.updated} ${time(state.generated_at)}${stale ? " · " + t.stale : ""}` +
+    (state.last_post_at ? ` · ${t.lastPost} ${time(state.last_post_at)}` : "") + `</div>` +
+    `<div>${t.model} ${state.model}, ${t.trained} ${date(state.trained_until)}</div>` +
+    `<div>${t.note}</div>`;
+}
+
+async function load() {
+  try {
+    const res = await fetch("state.json", { cache: "no-store" });
+    if (res.ok) state = await res.json();
+  } catch {}
+  render();
+}
+
+$("horizon").addEventListener("change", (e) => { horizon = e.target.value; localStorage.setItem("horizon", horizon); render(); });
+$("lang").addEventListener("click", () => { lang = lang === "uk" ? "en" : "uk"; localStorage.setItem("lang", lang); render(); });
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

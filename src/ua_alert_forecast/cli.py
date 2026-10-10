@@ -3,7 +3,7 @@
 import argparse
 import asyncio
 
-from . import experiments, scrape, train
+from . import experiments, live, scrape, train
 
 
 def main() -> None:
@@ -17,6 +17,11 @@ def main() -> None:
     p_exp = sub.add_parser("experiments", help="compare model variants on the dev window, write reports/experiments.md")
     p_exp.add_argument("--only", nargs="*", help="run only these config names")
     p_exp.add_argument("--report", default="experiments", help="report name: reports/<name>.md")
+    p_fit = sub.add_parser("fit-live", help="refit a config on all data for live mode -> data/live_model.pkl")
+    p_fit.add_argument("--config", default="r8_full_wave", choices=[c.name for c in experiments.CONFIGS])
+    p_live = sub.add_parser("live", help="poll the alert channel, forecast now, serve the web page")
+    p_live.add_argument("--host", default="127.0.0.1")
+    p_live.add_argument("--port", type=int, default=8790)
     args = parser.parse_args()
 
     if args.command == "login":
@@ -27,3 +32,7 @@ def main() -> None:
         train.train(experiments.BY_NAME[args.config])
     elif args.command == "experiments":
         experiments.run(args.only, args.report)
+    elif args.command == "fit-live":
+        train.fit_live(experiments.BY_NAME[args.config])
+    elif args.command == "live":
+        asyncio.run(live.run(args.host, args.port))

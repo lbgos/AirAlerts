@@ -14,6 +14,7 @@ import qrcode
 from dotenv import load_dotenv
 from telethon import TelegramClient
 from telethon.errors import SessionPasswordNeededError
+from telethon.tl.custom import Message
 
 from .config import ALERT_CHANNELS, HISTORY_START, RADAR_CHANNELS, RAW_DIR, ROOT
 
@@ -28,6 +29,18 @@ def last_saved_id(path) -> int:
     return last
 
 
+def to_row(msg: Message) -> dict:
+    """One saved post: the format of data/raw/<channel>.jsonl."""
+    return {
+        "id": msg.id,
+        "date": msg.date.isoformat(),
+        "edit_date": msg.edit_date.isoformat() if msg.edit_date else None,
+        "text": msg.message or "",
+        "reply_to": msg.reply_to.reply_to_msg_id if msg.reply_to else None,
+        "has_media": msg.media is not None,
+    }
+
+
 async def scrape_channel(client: TelegramClient, channel: str) -> int:
     path = RAW_DIR / f"{channel}.jsonl"
     min_id = last_saved_id(path)
@@ -38,15 +51,7 @@ async def scrape_channel(client: TelegramClient, channel: str) -> int:
         async for msg in client.iter_messages(channel, reverse=True, **kwargs):
             if msg.date < HISTORY_START:
                 continue
-            row = {
-                "id": msg.id,
-                "date": msg.date.isoformat(),
-                "edit_date": msg.edit_date.isoformat() if msg.edit_date else None,
-                "text": msg.message or "",
-                "reply_to": msg.reply_to.reply_to_msg_id if msg.reply_to else None,
-                "has_media": msg.media is not None,
-            }
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            f.write(json.dumps(to_row(msg), ensure_ascii=False) + "\n")
             count += 1
             if count % 1000 == 0:
                 f.flush()
