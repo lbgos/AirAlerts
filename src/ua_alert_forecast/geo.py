@@ -34,3 +34,7 @@ for _a, _bs in _BORDERS.items():
     for _b in _bs:
         NEIGHBORS[_a].append(_b)
         NEIGHBORS[_b].append(_a)
+
+# Oblasts on the front line or the Russian border, where sirens follow short-range threats (KABs, artillery, FPVs).
+# Experiments also report "rear" = all other regions, where long-range drones and missiles drive sirens.
+FRONTLINE = {"kharkivska", "sumska", "donetska", "zaporizka", "khersonska", "luhanska"}

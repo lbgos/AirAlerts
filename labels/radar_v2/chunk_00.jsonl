@@ -1,0 +1,100 @@
+{"channel": "kpszsu", "id": 50589, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50590, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50591, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["donetska"], "count": null}
+{"channel": "kpszsu", "id": 50592, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50593, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50594, "kind": "threat", "weapon": "unknown", "now_in": ["kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50595, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50596, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50597, "kind": "threat", "weapon": "recon_drone", "now_in": ["zaporizka", "kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50598, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50599, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50600, "kind": "threat", "weapon": "shahed", "now_in": ["kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50601, "kind": "threat", "weapon": "recon_drone", "now_in": ["sumska", "khersonska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50602, "kind": "threat", "weapon": "shahed", "now_in": ["kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50603, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50604, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50605, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "kpszsu", "id": 50606, "kind": "threat", "weapon": "recon_drone", "now_in": ["mykolaivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50607, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50608, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50609, "kind": "threat", "weapon": "recon_drone", "now_in": ["khersonska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50610, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50611, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50612, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50613, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kyivska"], "count": null}
+{"channel": "kpszsu", "id": 50614, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "kpszsu", "id": 50615, "kind": "threat", "weapon": "shahed", "now_in": ["dnipropetrovska", "chernihivska", "sumska", "kharkivska"], "heading_to": ["kyivska"], "count": null}
+{"channel": "kpszsu", "id": 50616, "kind": "threat", "weapon": "shahed", "now_in": ["dnipropetrovska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50617, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["khersonska"], "count": null}
+{"channel": "kpszsu", "id": 50618, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50619, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska", "dnipropetrovska", "kharkivska", "sumska"], "heading_to": ["kyivska"], "count": null}
+{"channel": "kpszsu", "id": 50620, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska"], "count": null}
+{"channel": "kpszsu", "id": 50621, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50622, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50623, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska", "sumska", "kharkivska"], "heading_to": ["kyivska"], "count": null}
+{"channel": "kpszsu", "id": 50624, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50625, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["odeska"], "count": null}
+{"channel": "kpszsu", "id": 50626, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50627, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50628, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50629, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50630, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50631, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["kharkivska", "donetska"], "count": null}
+{"channel": "kpszsu", "id": 50632, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50633, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50634, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50635, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["zhytomyrska"], "count": null}
+{"channel": "kpszsu", "id": 50636, "kind": "threat", "weapon": "shahed", "now_in": ["zhytomyrska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50637, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50638, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50639, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50640, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50641, "kind": "threat", "weapon": "missile", "now_in": ["dnipropetrovska"], "heading_to": ["kirovohradska"], "count": null}
+{"channel": "kpszsu", "id": 50642, "kind": "threat", "weapon": "missile", "now_in": ["kirovohradska"], "heading_to": ["cherkaska"], "count": null}
+{"channel": "kpszsu", "id": 50643, "kind": "threat", "weapon": "missile", "now_in": ["cherkaska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50644, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": ["kyivska"], "count": null}
+{"channel": "kpszsu", "id": 50645, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50646, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50647, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50648, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["poltavska"], "count": null}
+{"channel": "kpszsu", "id": 50649, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50650, "kind": "threat", "weapon": "shahed", "now_in": ["kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50651, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50652, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50653, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50654, "kind": "threat", "weapon": "recon_drone", "now_in": ["zaporizka"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50655, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50656, "kind": "threat", "weapon": "unknown", "now_in": [], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50657, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["donetska", "dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50658, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["sumska"], "count": null}
+{"channel": "kpszsu", "id": 50659, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "kpszsu", "id": 50660, "kind": "threat", "weapon": "shahed", "now_in": ["donetska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50661, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50662, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50663, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50664, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["zaporizka", "dnipropetrovska", "donetska"], "count": null}
+{"channel": "kpszsu", "id": 50665, "kind": "threat", "weapon": "shahed", "now_in": ["sumska", "kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50666, "kind": "threat", "weapon": "shahed", "now_in": ["kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50667, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "kpszsu", "id": 50668, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50669, "kind": "threat", "weapon": "shahed", "now_in": ["kharkivska", "poltavska"], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50670, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["donetska"], "count": null}
+{"channel": "kpszsu", "id": 50671, "kind": "threat", "weapon": "shahed", "now_in": ["dnipropetrovska"], "heading_to": ["zaporizka"], "count": null}
+{"channel": "kpszsu", "id": 50672, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["sumska"], "count": null}
+{"channel": "kpszsu", "id": 50673, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50674, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50675, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["chernihivska"], "count": null}
+{"channel": "kpszsu", "id": 50676, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50677, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["kharkivska"], "count": null}
+{"channel": "kpszsu", "id": 50678, "kind": "threat", "weapon": "kab", "now_in": [], "heading_to": ["donetska", "dnipropetrovska"], "count": null}
+{"channel": "kpszsu", "id": 50679, "kind": "threat", "weapon": "shahed", "now_in": ["dnipropetrovska", "zaporizka", "donetska", "kharkivska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50680, "kind": "threat", "weapon": "shahed", "now_in": ["mykolaivska"], "heading_to": ["odeska"], "count": null}
+{"channel": "kpszsu", "id": 50681, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50682, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zaporizka"], "count": null}
+{"channel": "kpszsu", "id": 50683, "kind": "threat", "weapon": "shahed", "now_in": ["dnipropetrovska", "zaporizka", "odeska", "sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50684, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50685, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50686, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["odeska"], "count": null}
+{"channel": "kpszsu", "id": 50687, "kind": "threat", "weapon": "recon_drone", "now_in": ["sumska", "zaporizka"], "heading_to": [], "count": null}
+{"channel": "kpszsu", "id": 50688, "kind": "threat", "weapon": "shahed", "now_in": ["donetska"], "heading_to": [], "count": null}

@@ -7,6 +7,7 @@ Only the winner is then evaluated on the final test by `forecast train --config 
 
 import pandas as pd
 
+from .geo import FRONTLINE
 from .model import Config, evaluate
 from .train import REPORT_DIR, load_table
 
@@ -46,22 +47,20 @@ CONFIGS = [
     # Round 5 (user question: do neighbors help on their own?)
     Config("r5_no_national", groups=("time", "history", "threats", "neighbors"), lgbm=SMALL, calib_days=7),
     Config("r5_no_neighbors", groups=("time", "history", "threats", "national"), lgbm=SMALL, calib_days=7),
+    # Round 6: radar v2 (now_in vs heading_to, count-weighted). Rounds 3-4 above were run with v1 radar features;
+    # the "radar" group now holds v2 features, so rerunning them measures v2.
+    Config("r6_full_radar2", groups=FULL + ("radar",), lgbm=SMALL, calib_days=7),
+    Config("r6_time_history_radar2", groups=("time", "history", "radar"), lgbm=SMALL, calib_days=7),
+    # Round 7: student finds oblasts with one head and picks each one's role with two more; adds national radar
+    # counts that include posts naming no oblast (launches, take-offs). Same groups as round 6.
+    Config("r7_full_radar", groups=FULL + ("radar",), lgbm=SMALL, calib_days=7),
+    Config("r7_time_history_radar", groups=("time", "history", "radar"), lgbm=SMALL, calib_days=7),
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 
 
-def run(only: list[str] | None = None) -> None:
-    table = load_table()
-    dev_end = table["ts"].max() - pd.Timedelta(days=14)
-    rows = []
-    for config in [c for c in CONFIGS if not only or c.name in only]:
-        _, metrics, _ = evaluate(table, dev_end, config)
-        clim = metrics[metrics.predictor == "climatology"].set_index("horizon")["brier"]
-        own = metrics[metrics.predictor == config.name].copy()
-        own["skill"] = 1 - own["brier"] / own["horizon"].map(clim)
-        rows.append(own)
-        print(f"{config.name:18s} skill {own['skill'].mean():.3f}  ece {own['ece'].mean():.3f}", flush=True)
-    res = pd.concat(rows)
+def summarize(res: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Per predictor: metrics averaged over horizons (ranked by the selection rule), and skill/ece per horizon."""
     summary = (
         res.groupby("predictor", sort=False)
         .agg(skill=("skill", "mean"), brier=("brier", "mean"), ece=("ece", "mean"), auc=("auc", "mean"),
@@ -71,12 +70,30 @@ def run(only: list[str] | None = None) -> None:
     )
     per_h = res.pivot(index="predictor", columns="horizon", values=["skill", "ece"]).loc[summary.index]
     per_h.columns = [f"{m}_{h}" for m, h in per_h.columns]
-    (REPORT_DIR / ("experiments.md" if not only else "experiments_subset.md")).write_text(
+    return summary, per_h
+
+
+def run(only: list[str] | None = None, report: str = "experiments") -> None:
+    table = load_table()
+    dev_end = table["ts"].max() - pd.Timedelta(days=14)
+    rows = []
+    for config in [c for c in CONFIGS if not only or c.name in only]:
+        _, metrics, _ = evaluate(table, dev_end, config)
+        clim = metrics[metrics.predictor == "climatology"].set_index(["subset", "horizon"])["brier"]
+        own = metrics[metrics.predictor == config.name].copy()
+        own["skill"] = 1 - own["brier"] / pd.MultiIndex.from_frame(own[["subset", "horizon"]]).map(clim)
+        rows.append(own)
+        print(f"{config.name:18s} skill {own[own.subset == 'all']['skill'].mean():.3f}  rear {own[own.subset == 'rear']['skill'].mean():.3f}", flush=True)
+    res = pd.concat(rows)
+    text = (
         "# Experiments (dev window)\n\n"
         f"Dev test window: 14 days ending {dev_end:%Y-%m-%d %H:%M} UTC. Final test window not used here.\n\n"
         "skill = 1 - brier / brier(climatology), higher is better. ece = calibration error, lower is better.\n"
-        "low_* / high_*: mean predicted vs observed among forecasts below 10% / at or above 90%.\n\n"
-        "## Averaged over horizons\n\n" + summary.round(4).to_markdown() + "\n\n"
-        "## Per horizon\n\n" + per_h.round(4).to_markdown() + "\n"
+        "low_* / high_*: mean predicted vs observed among forecasts below 10% / at or above 90%.\n"
+        f"rear = all regions except {', '.join(sorted(FRONTLINE))}.\n"
     )
-    print(summary.round(3).to_string())
+    for subset, title in [("all", "All regions"), ("rear", "Rear regions")]:
+        summary, per_h = summarize(res[res.subset == subset])
+        text += f"\n## {title}, averaged over horizons\n\n{summary.round(4).to_markdown()}\n\n## {title}, per horizon\n\n{per_h.round(4).to_markdown()}\n"
+        print(f"\n{title}\n{summary.round(3).to_string()}")
+    (REPORT_DIR / f"{report}.md").write_text(text)

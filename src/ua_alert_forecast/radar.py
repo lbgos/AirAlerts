@@ -1,6 +1,7 @@
-"""Radar-channel post classifier (the "student"): text -> kind, weapon, oblasts. No LLM at run time.
+"""Radar-channel post classifier (the "student"): text -> kind, weapon, count, now_in, heading_to. No LLM at run time.
 
-Trained on a sample labeled once by an LLM teacher (prompts/radar_labeling.md, labels in data/radar_labels/).
+Trained on a sample labeled once by an LLM teacher (prompts/radar_labeling_v2.md, labels in labels/radar_v2/).
+v1 (prompts/radar_labeling.md, labels/radar/) had one oblast list mixing "is there" and "is heading there".
 Uses character n-grams, which cover Ukrainian word forms ("Вінниччині", "Вінничині", "Вінниця").
 The previous post of the same channel is a separate input, so follow-ups like "Мінус" can borrow its place
 names without those names counting as the current post's own.
@@ -42,52 +43,86 @@ def _vectorizer() -> ColumnTransformer:
     return ColumnTransformer([("text", tfidf(), "text"), ("prev", tfidf(), "prev")])
 
 
+ARMED = ["threat", "shot_down", "impact"]
+ROLES = ("now_in", "heading_to")  # where the object is now / where it is going but not yet
+# Stated object counts are bucketed; an event's weight in the features is its bucket's typical size.
+COUNT_WEIGHT = {"none": 1.0, "1": 1.0, "2-3": 2.5, "4+": 6.0}
+
+
+def count_bucket(count: float | None) -> str:
+    if count is None or pd.isna(count):
+        return "none"
+    return "1" if count <= 1 else "2-3" if count <= 3 else "4+"
+
+
 @dataclass
 class Student:
     kind: Pipeline
     weapon: Pipeline
-    oblasts: Pipeline
-    oblast_classes: list[str]
+    count: Pipeline
+    places: dict[str, Pipeline]  # "any", "now_in", "heading_to" -> multi-label oblast classifier over REGIONS columns
 
     @classmethod
     def fit(cls, labeled: pd.DataFrame) -> "Student":
-        """`labeled`: columns text, prev, kind, weapon, oblasts (list[str])."""
-        # Settings chosen by 4-fold cross-validation grouped by chunk on the training labels:
+        """`labeled`: columns text, prev, kind, weapon, count, now_in, heading_to (lists of oblast ids)."""
+        # Settings chosen by 4-fold cross-validation grouped by chunk on the v1 training labels:
         # class balancing lifted oblast recall from 0.69 to 0.87 at precision 0.91.
         lr = dict(max_iter=3000, C=4.0, class_weight="balanced")
-        kind = make_pipeline(_vectorizer(), LogisticRegression(**lr)).fit(labeled[["text", "prev"]], labeled["kind"])
-        armed = labeled[labeled["kind"].isin(["threat", "shot_down", "impact"])]
+        x = labeled[["text", "prev"]]
+        kind = make_pipeline(_vectorizer(), LogisticRegression(**lr)).fit(x, labeled["kind"])
+        armed = labeled[labeled["kind"].isin(ARMED)]
         weapon = make_pipeline(_vectorizer(), LogisticRegression(**lr)).fit(armed[["text", "prev"]], armed["weapon"].fillna("unknown"))
-        mlb = MultiLabelBinarizer(classes=REGIONS)
-        y = mlb.fit_transform(labeled["oblasts"])
-        seen = y.sum(axis=0) > 0  # oblasts never seen in the sample can't be learned
-        oblasts = make_pipeline(_vectorizer(), OneVsRestClassifier(LogisticRegression(**(lr | {"C": 16.0})))).fit(labeled[["text", "prev"]], y[:, seen])
-        return cls(kind, weapon, oblasts, [r for r, s in zip(REGIONS, seen) if s])
+        count = make_pipeline(_vectorizer(), LogisticRegression(**lr)).fit(armed[["text", "prev"]], armed["count"].map(count_bucket))
+        targets = {"any": [sorted(set(a) | set(b)) for a, b in zip(labeled["now_in"], labeled["heading_to"])]} | {r: labeled[r] for r in ROLES}
+        places = {}
+        for name, lists in targets.items():
+            y = MultiLabelBinarizer(classes=REGIONS).fit_transform(lists)
+            seen = y.sum(axis=0) > 0  # oblasts never seen in the sample can't be learned
+            clf = make_pipeline(_vectorizer(), OneVsRestClassifier(LogisticRegression(**(lr | {"C": 16.0})))).fit(x, y[:, seen])
+            places[name] = (clf, seen)
+        return cls(kind, weapon, count, places)
+
+    def _place_proba(self, name: str, x: pd.DataFrame) -> np.ndarray:
+        clf, seen = self.places[name]
+        out = np.zeros((len(x), len(REGIONS)))
+        out[:, seen] = clf.predict_proba(x)
+        return out
 
     def predict(self, posts: pd.DataFrame) -> pd.DataFrame:
-        """Columns kind, weapon (None unless armed), oblasts (list[str]) aligned with `posts`."""
+        """Columns kind, weapon (None unless armed), count (bucket), now_in, heading_to, aligned with `posts`.
+
+        Which oblasts a post mentions is easy (heldout P .93 / R .87); whether each is "now" or "heading" is
+        harder, so one head finds the oblasts and the two role heads only decide the role of each found oblast.
+        """
         x = posts[["text", "prev"]]
         kind = self.kind.predict(x)
-        weapon = np.where(np.isin(kind, ["threat", "shot_down", "impact"]), self.weapon.predict(x), None)
-        hits = self.oblasts.predict_proba(x) >= 0.5
-        oblasts = [[c for c, h in zip(self.oblast_classes, row) if h] for row in hits]
-        return pd.DataFrame({"kind": kind, "weapon": weapon, "oblasts": oblasts}, index=posts.index)
+        armed = np.isin(kind, ARMED)
+        found = self._place_proba("any", x) >= 0.5
+        is_now = self._place_proba("now_in", x) >= self._place_proba("heading_to", x)
+        regions = np.array(REGIONS)
+        return pd.DataFrame({
+            "kind": kind,
+            "weapon": np.where(armed, self.weapon.predict(x), None),
+            "count": np.where(armed, self.count.predict(x), "none"),
+            "now_in": [list(regions[f & n]) for f, n in zip(found, is_now)],
+            "heading_to": [list(regions[f & ~n]) for f, n in zip(found, is_now)],
+        }, index=posts.index)
 
 
 def normalize_teacher(labels: pd.DataFrame) -> pd.DataFrame:
-    """Fix the two places where the 10 teacher agents disagreed with each other (found while reviewing their reports).
+    """Fix the two places where the teacher agents disagreed with each other (found while reviewing their reports).
 
     - "Бандероль": the posts call it a loitering munition ("баражуючий боєприпас"); agents used shahed, missile or unknown.
     - "ЗБИТО/ПОДАВЛЕНО" daily tallies: the instructions say statistics are `other`; some agents used shot_down.
     """
     labels = labels.copy()
-    armed = labels["kind"].isin(["threat", "shot_down", "impact"])
+    armed = labels["kind"].isin(ARMED)
     banderol = labels["text"].str.contains("андерол", case=False)
     labels.loc[armed & banderol, "weapon"] = "shahed"
     tally = labels["text"].str.contains("ЗБИТО/ПОДАВЛЕНО", case=False)
-    labels.loc[tally, "kind"] = "other"
-    labels.loc[tally, "weapon"] = None
-    labels.loc[tally, "oblasts"] = pd.Series([[] for _ in range(tally.sum())], index=labels.index[tally], dtype=object)
+    labels.loc[tally, ["kind", "weapon", "count"]] = ["other", None, None]
+    for role in ROLES:
+        labels.loc[tally, role] = pd.Series([[] for _ in range(tally.sum())], index=labels.index[tally], dtype=object)
     return labels
 
 
@@ -105,10 +140,16 @@ def load_labels(label_dir: Path, raw_dir: Path) -> pd.DataFrame:
 
 
 def to_events(posts: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
-    """One row per (post, oblast) for posts with a place: ts, kind, weapon, oblast. Input for dataset.build_table."""
-    df = pd.DataFrame({"ts": posts["date"], "kind": labels["kind"], "weapon": labels["weapon"], "oblast": labels["oblasts"]})
-    df = df.explode("oblast").dropna(subset=["oblast"])
-    return df.sort_values("ts", kind="stable").reset_index(drop=True)
+    """Input for dataset.build_table: ts, post, kind, weapon, weight, role, oblast.
+
+    One row per (post, role, oblast), plus one row with role "post" and no oblast for every post, so posts that
+    name no oblast (launches, take-offs, general ballistic warnings) still count in the national features.
+    """
+    base = pd.DataFrame({"ts": posts["date"], "post": np.arange(len(posts)), "kind": labels["kind"].to_numpy(),
+                         "weapon": labels["weapon"].to_numpy(), "weight": labels["count"].map(COUNT_WEIGHT).to_numpy()})
+    parts = [base.assign(role=role, oblast=labels[role].to_numpy()).explode("oblast").dropna(subset=["oblast"]) for role in ROLES]
+    parts.append(base.assign(role="post", oblast=None))
+    return pd.concat(parts).sort_values("ts", kind="stable").reset_index(drop=True)
 
 
 def label_history(raw_dir: Path, label_dir: Path, channels: list[str], train_before: pd.Timestamp) -> pd.DataFrame:

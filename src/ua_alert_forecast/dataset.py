@@ -102,9 +102,16 @@ def minutes_since(times: np.ndarray, t: np.ndarray, cap_minutes: float = 24 * 60
     return np.minimum((t - last) / 6e10, cap_minutes)
 
 
+def sum_before(times: np.ndarray, weights: np.ndarray, t: np.ndarray, window: pd.Timedelta) -> np.ndarray:
+    """Sum of weights of events in [t - window, t). `times` sorted int64 ns, `weights` aligned with it."""
+    cs = np.concatenate([[0.0], np.cumsum(weights)])
+    return cs[np.searchsorted(times, t, side="left")] - cs[np.searchsorted(times, t - window.value, side="left")]
+
+
 # Radar-channel events (student classifier output) grouped like the alert-channel threats.
 RADAR_GROUPS = {"drone": ["shahed", "jet_drone", "recon_drone"], "missile": ["missile"], "kab": ["kab"], "aviation": ["aviation"]}
 RADAR_WINDOWS = {"30m": pd.Timedelta(minutes=30), "1h": pd.Timedelta(hours=1)}
+RADAR_NATIONAL_WINDOWS = {"1h": pd.Timedelta(hours=1), "3h": pd.Timedelta(hours=3)}
 
 
 def build_table(
@@ -112,7 +119,8 @@ def build_table(
 ) -> pd.DataFrame:
     """Feature + label table on a 15-minute grid in [start, end). Labels need data up to end + 6h.
 
-    `radar` (optional): one row per (post, oblast) with ts, kind, weapon, oblast, from `radar.to_events`.
+    `radar` (optional): output of `radar.to_events` (rows per post, role and oblast, with weights). Role "heading_to" is where an object is going but not yet: the direction signal that
+    neighbor sirens don't carry.
     """
     grid = pd.date_range(start.ceil(STEP), end, freq=STEP, inclusive="left", tz="UTC", unit="ns")
     t = grid.asi8
@@ -133,16 +141,27 @@ def build_table(
     national_active = np.sum([active[r] for r in REGIONS], axis=0)
     data_end = events["ts"].max().value
 
-    def radar_times(mask: pd.Series) -> np.ndarray:
-        return np.sort(radar.loc[mask, "ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64))
+    def radar_series(mask: pd.Series) -> tuple[np.ndarray, np.ndarray]:
+        sel = radar[mask].sort_values("ts", kind="stable")
+        return sel["ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64), sel["weight"].to_numpy(dtype=float)
 
+    roles = {"now": "now_in", "head": "heading_to"}
     if radar is not None:
         radar_threat = {
-            (r, g): radar_times((radar["kind"] == "threat") & (radar["oblast"] == r) & radar["weapon"].isin(ws))
+            (r, role, g): radar_series(
+                (radar["kind"] == "threat") & (radar["oblast"] == r) & (radar["role"] == rname) & radar["weapon"].isin(ws)
+            )
             for r in REGIONS
+            for role, rname in roles.items()
             for g, ws in RADAR_GROUPS.items()
         }
-        radar_down = {r: radar_times((radar["kind"] == "shot_down") & (radar["oblast"] == r)) for r in REGIONS}
+        radar_down = {r: radar_series((radar["kind"] == "shot_down") & (radar["oblast"] == r))[0] for r in REGIONS}
+        # Country-wide threat posts per weapon group, counted once per post whether or not it names an oblast.
+        radar_national = {
+            (g, wname): count_before(radar_series((radar["role"] == "post") & (radar["kind"] == "threat") & radar["weapon"].isin(ws))[0], t, w)
+            for g, ws in RADAR_GROUPS.items()
+            for wname, w in RADAR_NATIONAL_WINDOWS.items()
+        }
 
     kyiv_time = grid.tz_convert("Europe/Kyiv")
     frames = []
@@ -168,11 +187,14 @@ def build_table(
         for wname, w in WINDOWS.items():
             f[f"nb_starts_{wname}"] = np.sum([count_before(starts[n], t, w) for n in nb], axis=0) if nb else 0
         if radar is not None:
-            for g in RADAR_GROUPS:
-                for wname, w in RADAR_WINDOWS.items():
-                    f[f"radar_{g}_{wname}"] = count_before(radar_threat[(r, g)], t, w)
-                    f[f"nb_radar_{g}_{wname}"] = np.sum([count_before(radar_threat[(n, g)], t, w) for n in nb], axis=0)
+            for role in roles:
+                for g in RADAR_GROUPS:
+                    for wname, w in RADAR_WINDOWS.items():
+                        f[f"radar_{role}_{g}_{wname}"] = sum_before(*radar_threat[(r, role, g)], t, w)
+                        f[f"nb_radar_{role}_{g}_{wname}"] = np.sum([sum_before(*radar_threat[(n, role, g)], t, w) for n in nb], axis=0)
             f["radar_down_1h"] = count_before(radar_down[r], t, pd.Timedelta(hours=1))
+            for (g, wname), counts in radar_national.items():
+                f[f"radar_national_{g}_{wname}"] = counts
         for h, d in HORIZONS.items():
             # Count of starts in (t, t + d]; label unknown (NaN) when the window runs past the data.
             n = np.searchsorted(starts[r], t + d.value, side="right") - np.searchsorted(starts[r], t, side="right")

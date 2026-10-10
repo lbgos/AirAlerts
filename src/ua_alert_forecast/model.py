@@ -23,6 +23,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from .dataset import HORIZONS, Horizon, feature_groups
+from .geo import FRONTLINE
 
 HALF_LIFE_DAYS = 60  # recent tactics count more: a row 60 days old weighs half as much as today's
 Calibration = Literal["none", "isotonic", "platt"]
@@ -186,7 +187,8 @@ def reliability(y: np.ndarray, p: np.ndarray, bins: int = 10) -> pd.DataFrame:
 def evaluate(table: pd.DataFrame, test_end: pd.Timestamp, config: Config, test_days: int = 14):
     """Fit `config` for every horizon on the window ending at `test_end`.
 
-    Returns models, a metrics table (config vs climatology and base-rate baselines) and per-horizon reliability tables.
+    Returns models, a metrics table (config vs climatology and base-rate baselines, for all regions and for the
+    rear subset) and per-horizon reliability tables (all regions).
     """
     split = Split.ending(test_end, test_days, config.calib_days)
     models, rows, rel = {}, [], {}
@@ -196,7 +198,9 @@ def evaluate(table: pd.DataFrame, test_end: pd.Timestamp, config: Config, test_d
         test, y = parts["test"], parts["test"][f"y_{h}"].to_numpy()
         p = model.predict(test)
         baselines = {"climatology": climatology(parts["train"], test, h), "base_rate": np.full(len(test), parts["train"][f"y_{h}"].mean())}
-        for name, pred in {config.name: p, **baselines}.items():
-            rows.append({"horizon": h, "predictor": name, "n_test": len(test), "positive_rate": y.mean(), **scores(y, pred)})
+        subsets = {"all": np.ones(len(test), dtype=bool), "rear": ~test["region"].isin(FRONTLINE).to_numpy()}
+        for subset, m in subsets.items():
+            for name, pred in {config.name: p, **baselines}.items():
+                rows.append({"subset": subset, "horizon": h, "predictor": name, "n_test": int(m.sum()), "positive_rate": y[m].mean(), **scores(y[m], pred[m])})
         models[h], rel[h] = model, reliability(y, p)
     return models, pd.DataFrame(rows), rel

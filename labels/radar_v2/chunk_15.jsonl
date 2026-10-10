@@ -1,0 +1,100 @@
+{"channel": "deraketaua", "id": 50772, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50773, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50774, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 3}
+{"channel": "deraketaua", "id": 50775, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50776, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50777, "kind": "threat", "weapon": "shahed", "now_in": ["khersonska"], "heading_to": [], "count": 3}
+{"channel": "deraketaua", "id": 50778, "kind": "threat", "weapon": "shahed", "now_in": ["odeska", "chernihivska", "khersonska"], "heading_to": ["kyivska", "mykolaivska"], "count": null}
+{"channel": "deraketaua", "id": 50779, "kind": "threat", "weapon": "shahed", "now_in": ["mykolaivska"], "heading_to": ["kirovohradska"], "count": 8}
+{"channel": "deraketaua", "id": 50780, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": [], "count": 1}
+{"channel": "deraketaua", "id": 50781, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50782, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 6}
+{"channel": "deraketaua", "id": 50783, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50784, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50785, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": ["odeska"], "count": null}
+{"channel": "deraketaua", "id": 50786, "kind": "impact", "weapon": "unknown", "now_in": ["odeska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50787, "kind": "all_clear", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50788, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50789, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50790, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 1}
+{"channel": "deraketaua", "id": 50791, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50792, "kind": "threat", "weapon": "shahed", "now_in": ["dnipropetrovska"], "heading_to": [], "count": 3}
+{"channel": "deraketaua", "id": 50793, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska"], "heading_to": ["kyivska"], "count": 3}
+{"channel": "deraketaua", "id": 50794, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 1}
+{"channel": "deraketaua", "id": 50795, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["zhytomyrska"], "count": 2}
+{"channel": "deraketaua", "id": 50796, "kind": "threat", "weapon": "shahed", "now_in": ["zhytomyrska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50797, "kind": "threat", "weapon": "shahed", "now_in": ["zhytomyrska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50798, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska", "zhytomyrska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50799, "kind": "all_clear", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50800, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50801, "kind": "all_clear", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50802, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska", "chernihivska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50803, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["zhytomyrska"], "count": 2}
+{"channel": "deraketaua", "id": 50804, "kind": "threat", "weapon": "shahed", "now_in": ["zhytomyrska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50805, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": 3}
+{"channel": "deraketaua", "id": 50806, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50807, "kind": "threat", "weapon": "kab", "now_in": ["odeska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50808, "kind": "all_clear", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50809, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["zhytomyrska"], "count": 1}
+{"channel": "deraketaua", "id": 50810, "kind": "all_clear", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50811, "kind": "threat", "weapon": "shahed", "now_in": ["chernihivska", "kyivska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50812, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska", "chernihivska"], "heading_to": ["zhytomyrska"], "count": null}
+{"channel": "deraketaua", "id": 50813, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska", "zhytomyrska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50814, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50815, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["odeska"], "count": 5}
+{"channel": "deraketaua", "id": 50816, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50817, "kind": "threat", "weapon": "shahed", "now_in": ["odeska", "zhytomyrska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50818, "kind": "all_clear", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50819, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50820, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50821, "kind": "threat", "weapon": "shahed", "now_in": ["khersonska"], "heading_to": [], "count": 8}
+{"channel": "deraketaua", "id": 50822, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50823, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50824, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": ["chernihivska"], "count": 8}
+{"channel": "deraketaua", "id": 50825, "kind": "threat", "weapon": "shahed", "now_in": ["odeska"], "heading_to": [], "count": 11}
+{"channel": "deraketaua", "id": 50826, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50827, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50828, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50829, "kind": "threat", "weapon": "shahed", "now_in": ["sumska"], "heading_to": ["poltavska"], "count": 10}
+{"channel": "deraketaua", "id": 50830, "kind": "threat", "weapon": "shahed", "now_in": ["odeska", "kharkivska", "donetska"], "heading_to": ["dnipropetrovska", "mykolaivska"], "count": null}
+{"channel": "deraketaua", "id": 50831, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50832, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50833, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50834, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50836, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50837, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": [], "count": 150}
+{"channel": "deraketaua", "id": 50838, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50839, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50840, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50841, "kind": "threat", "weapon": "aviation", "now_in": [], "heading_to": [], "count": 3}
+{"channel": "deraketaua", "id": 50842, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50843, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska"], "count": 4}
+{"channel": "deraketaua", "id": 50844, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50845, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50846, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["rivnenska"], "count": 4}
+{"channel": "deraketaua", "id": 50847, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zhytomyrska"], "count": 2}
+{"channel": "deraketaua", "id": 50848, "kind": "threat", "weapon": "shahed", "now_in": ["rivnenska"], "heading_to": [], "count": 3}
+{"channel": "deraketaua", "id": 50849, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50850, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["zhytomyrska"], "count": 25}
+{"channel": "deraketaua", "id": 50851, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["zhytomyrska"], "count": null}
+{"channel": "deraketaua", "id": 50852, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zhytomyrska"], "count": 2}
+{"channel": "deraketaua", "id": 50853, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50854, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50855, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["ivano_frankivska"], "count": 8}
+{"channel": "deraketaua", "id": 50856, "kind": "threat", "weapon": "shahed", "now_in": ["kyivska"], "heading_to": ["kyiv"], "count": 1}
+{"channel": "deraketaua", "id": 50857, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50858, "kind": "other", "weapon": null, "now_in": [], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50859, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["ivano_frankivska"], "count": 5}
+{"channel": "deraketaua", "id": 50860, "kind": "threat", "weapon": "missile", "now_in": ["sumska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50861, "kind": "threat", "weapon": "missile", "now_in": ["sumska"], "heading_to": ["chernihivska"], "count": 2}
+{"channel": "deraketaua", "id": 50862, "kind": "threat", "weapon": "missile", "now_in": ["chernihivska"], "heading_to": ["poltavska"], "count": 2}
+{"channel": "deraketaua", "id": 50863, "kind": "threat", "weapon": "missile", "now_in": ["sumska"], "heading_to": ["poltavska"], "count": 1}
+{"channel": "deraketaua", "id": 50864, "kind": "threat", "weapon": "missile", "now_in": ["poltavska"], "heading_to": ["cherkaska"], "count": 2}
+{"channel": "deraketaua", "id": 50865, "kind": "threat", "weapon": "missile", "now_in": ["sumska", "poltavska", "cherkaska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50866, "kind": "threat", "weapon": "missile", "now_in": ["cherkaska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50867, "kind": "threat", "weapon": "missile", "now_in": [], "heading_to": [], "count": 10}
+{"channel": "deraketaua", "id": 50868, "kind": "threat", "weapon": "missile", "now_in": ["cherkaska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50869, "kind": "threat", "weapon": "shahed", "now_in": [], "heading_to": ["zhytomyrska"], "count": 2}
+{"channel": "deraketaua", "id": 50870, "kind": "threat", "weapon": "missile", "now_in": ["sumska"], "heading_to": [], "count": 2}
+{"channel": "deraketaua", "id": 50871, "kind": "threat", "weapon": "missile", "now_in": ["cherkaska", "poltavska"], "heading_to": [], "count": null}
+{"channel": "deraketaua", "id": 50872, "kind": "threat", "weapon": "missile", "now_in": ["cherkaska"], "heading_to": [], "count": 2}

@@ -57,3 +57,15 @@ def test_neighbors_symmetric_and_complete():
         assert bs, a
         for b in bs:
             assert a in NEIGHBORS[b], (a, b)
+
+
+def test_radar_features_count_only_earlier_posts(tmp_path):
+    # A shahed group (count bucket "2-3", weight 2.5) heading to Poltava oblast, posted at 00:45.
+    radar = pd.DataFrame({"ts": pd.to_datetime(["2026-10-01T00:45:00Z"]).as_unit("ns"), "kind": ["threat"], "weapon": ["shahed"],
+                          "role": ["heading_to"], "oblast": ["poltavska"], "weight": [2.5], "post": [0]})
+    table = build_table(events_from(POSTS, tmp_path), pd.Timestamp("2026-10-01T00:00Z"), pd.Timestamp("2026-10-01T01:30Z"), radar=radar)
+    at = lambda region, hhmm: table[(table.region == region) & (table.ts == pd.Timestamp(f"2026-10-01T{hhmm}Z"))].iloc[0]  # noqa: E731
+    assert at("poltavska", "00:45")["radar_head_drone_30m"] == 0  # posted at T: not known yet
+    assert at("poltavska", "01:00")["radar_head_drone_30m"] == 2.5
+    assert at("poltavska", "01:00")["radar_now_drone_30m"] == 0
+    assert at("cherkaska", "01:00")["nb_radar_head_drone_30m"] == 2.5

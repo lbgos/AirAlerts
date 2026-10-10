@@ -13,7 +13,7 @@ MODELS_PATH = ROOT / "data" / "models.pkl"
 REPORT_DIR = ROOT / "reports"
 LABEL_CHANNEL = "UkraineAlarmSignal"
 RADAR_CHANNELS_USED = ["kpszsu", "deraketaua"]
-RADAR_LABELS = ROOT / "labels" / "radar"
+RADAR_LABELS = ROOT / "labels" / "radar_v2"
 # The radar student only learns from teacher labels before the dev window (which starts 28 days before the data ends).
 STUDENT_DAYS_BEFORE_END = 28
 
