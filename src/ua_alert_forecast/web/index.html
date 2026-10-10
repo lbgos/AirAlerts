@@ -12,8 +12,8 @@
   document.documentElement.dataset.theme = effectiveTheme();
 </script>
 <style>
-  [data-theme="dark"] { --bg: #000; --fg: #fff; --dim: #8e8e93; --line: #1c1c1e; --track: #1c1c1e; --nodata: #141414; --red: #ff453a; --border: #3a3a3c; }
-  [data-theme="light"] { --bg: #fff; --fg: #000; --dim: #6e6e73; --line: #e5e5ea; --track: #ececee; --nodata: #f4f4f5; --red: #d70015; --border: #c7c7cc; }
+  [data-theme="dark"] { --bg: #000; --fg: #fff; --dim: #8e8e93; --line: #1c1c1e; --track: #1c1c1e; --nodata: #4a4a4e; --red: #ff453a; --border: #3a3a3c; }
+  [data-theme="light"] { --bg: #fff; --fg: #000; --dim: #6e6e73; --line: #e5e5ea; --track: #ececee; --nodata: #b9b9be; --red: #d70015; --border: #c7c7cc; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--fg); }
   body {
@@ -38,12 +38,13 @@
   svg path.region.selected { stroke: var(--fg); stroke-width: 3; }
   svg .nodata { fill: var(--nodata); stroke: var(--bg); stroke-width: 1.6; }
   svg text { font-weight: 650; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-  .legend { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 12px; color: var(--dim); }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; font-size: 12px; color: var(--dim); }
   .scale { flex: 1; max-width: 240px; }
   .scale .ramp { height: 8px; border-radius: 4px; }
   .scale .ticks { display: flex; justify-content: space-between; margin-top: 2px; }
   .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -3px; margin-right: 6px;
     background: repeating-linear-gradient(45deg, var(--red) 0 3px, var(--bg) 3px 6px); }
+  .swatch.nodata { background: var(--nodata); }
   .caption { min-height: 20px; margin: 8px 0 0; font-size: 14px; }
   ol { list-style: none; margin: 4px 0 0; padding: 0; }
   li {
@@ -76,6 +77,7 @@
 <div class="legend">
   <div class="scale"><div class="ramp" id="ramp"></div><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div>
   <span><span class="swatch"></span><span id="alertKey"></span></span>
+  <span><span class="swatch nodata"></span><span id="nodataKey"></span></span>
 </div>
 <p class="caption" id="caption"></p>
 <ol id="list"></ol>
@@ -98,7 +100,7 @@ const T = {
     title: "Прогноз тривог", other: "EN", what: "ймовірність, що тривога почнеться",
     h: { "30m": "30 хв", "1h": "1 год", "3h": "3 год", "6h": "6 год" }, within: "за",
     theme: { auto: "тема: авто", dark: "тема: темна", light: "тема: світла" },
-    alert: "тривога", alertNow: "тривога зараз", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
+    alert: "тривога", alertNow: "тривога зараз", nodata: "окуповано", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
     stale: "дані застаріли", model: "модель", trained: "навчена до", tap: "Торкніться області на мапі або в списку.",
     note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени. Мапа: geoBoundaries, © OpenStreetMap.",
   },
@@ -106,16 +108,19 @@ const T = {
     title: "Air alert forecast", other: "УКР", what: "chance a siren starts within",
     h: { "30m": "30 min", "1h": "1 hour", "3h": "3 hours", "6h": "6 hours" }, within: "within",
     theme: { auto: "theme: auto", dark: "theme: dark", light: "theme: light" },
-    alert: "alert", alertNow: "alert now", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
+    alert: "alert", alertNow: "alert now", nodata: "occupied", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
     stale: "data is stale", model: "model", trained: "trained until", tap: "Tap an oblast on the map or in the list.",
     note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens. Map: geoBoundaries, © OpenStreetMap.",
   },
 };
 // One warm hue per theme: near the surface at 0%, saturated red at 100% (lighter in dark mode, darker in light mode).
 const RAMPS = {
-  dark: ["#262626", "#5c1d18", "#a3281e", "#ec3b2c", "#ff7259"],
+  dark: ["#2a2321", "#5c1d18", "#a3281e", "#ec3b2c", "#ff7259"],
   light: ["#efeeec", "#f7c6ba", "#ee7c63", "#d23a2b", "#8a1a12"],
 };
+// Grey, no forecast: Crimea and Sevastopol (drawn from geo.other) and Luhansk oblast, which is occupied and has had
+// no alert posts in the channel (0 in the 28 days before 2026-10-10).
+const NO_DATA = new Set(["luhanska"]);
 // Kyiv city is too small to read at phone width: it is repeated as an inset in the empty bottom-left corner.
 const INSET = { x: 40, y: 500, size: 120 };
 
@@ -171,7 +176,7 @@ function renderMap(byId, t) {
   };
   let out = `<defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="16" height="16" patternTransform="rotate(45)">
     <rect width="16" height="16" fill="var(--bg)"/><rect width="8" height="16" fill="var(--red)"/></pattern></defs>`;
-  out += geo.other.map((d) => `<path class="nodata" d="${d}"/>`).join("");
+  out += [...geo.other, ...[...NO_DATA].map((id) => geo.regions[id].d)].map((d) => `<path class="nodata" d="${d}"/>`).join("");
   const ids = Object.keys(geo.regions).filter((id) => byId[id]).sort((a, b) => (a === "kyiv") - (b === "kyiv")); // city on top
   for (const id of ids) {
     out += `<path class="region${id === selected ? " selected" : ""}" data-id="${id}" d="${geo.regions[id].d}" fill="${fillOf(byId[id])}"><title>${name(id)}</title></path>`;
@@ -197,12 +202,14 @@ function render() {
   $("theme").textContent = t.theme[theme];
   $("what").textContent = t.what;
   $("alertKey").textContent = t.alertNow;
+  $("nodataKey").textContent = t.nodata;
   $("ramp").style.background = `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1].map(color).join(", ")})`;
   $("horizon").innerHTML = Object.entries(t.h)
     .map(([k, v]) => `<option value="${k}"${k === horizon ? " selected" : ""}>${v}</option>`).join("");
   if (!state) return;
 
-  const byId = Object.fromEntries(state.regions.map((r) => [r.id, r]));
+  const regions = state.regions.filter((r) => !NO_DATA.has(r.id));
+  const byId = Object.fromEntries(regions.map((r) => [r.id, r]));
   renderMap(byId, t);
 
   const s = selected && byId[selected];
@@ -210,7 +217,7 @@ function render() {
     ? `<b>${name(s.id)}</b> · ${s.active ? `<span style="color:var(--red)">${t.alert} ${duration(s.alert_minutes, t)}</span>` : `${pct(s.p[horizon])} ${t.within} ${t.h[horizon]}`}`
     : `<span style="color:var(--dim)">${t.tap}</span>`;
 
-  const rows = [...state.regions].sort((a, b) =>
+  const rows = [...regions].sort((a, b) =>
     a.active !== b.active ? (a.active ? 1 : -1) : a.active ? b.alert_minutes - a.alert_minutes : b.p[horizon] - a.p[horizon]);
   $("list").innerHTML = rows.map((r) => {
     const cls = `${r.active ? "active" : ""}${r.id === selected ? " selected" : ""}`;
