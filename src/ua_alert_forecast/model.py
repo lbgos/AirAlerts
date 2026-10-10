@@ -27,6 +27,7 @@ from .geo import FRONTLINE
 
 HALF_LIFE_DAYS = 60  # recent tactics count more: a row 60 days old weighs half as much as today's
 Calibration = Literal["none", "isotonic", "platt"]
+Target = Literal["start", "clear"]  # siren starts (rows not under alert) / all-clear comes (rows under alert)
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,11 @@ class Config:
     calibration: Calibration = "platt"
     calib_days: int = 21
     members: tuple["Config", ...] = ()  # non-empty: an ensemble averaging these configs' calibrated outputs
+    target: Target = "start"
+
+
+def label(target: Target, horizon: Horizon) -> str:
+    return f"y_{horizon}" if target == "start" else f"yc_{horizon}"
 
 
 @dataclass(frozen=True)
@@ -51,8 +57,10 @@ class Split:
         calib_end = test_end - pd.Timedelta(days=test_days)
         return cls(calib_end - pd.Timedelta(days=calib_days), calib_end, test_end)
 
-    def periods(self, table: pd.DataFrame, horizon: Horizon) -> dict[str, pd.DataFrame]:
-        y = f"y_{horizon}"
+    def periods(self, table: pd.DataFrame, horizon: Horizon, target: Target = "start") -> dict[str, pd.DataFrame]:
+        y = label(target, horizon)
+        if "active" in table.columns:  # tables built with keep_active hold both kinds of rows
+            table = table[table["active"] == (target == "clear")]
         ts, label_end = table["ts"], table["ts"] + HORIZONS[horizon]
         known = table[y].notna()
         return {
@@ -134,8 +142,8 @@ def make_classifier(config: Config, features: list[str]):
 def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> HorizonModel | Ensemble:
     if config.members:
         return Ensemble([fit(table, horizon, split, m) for m in config.members])
-    parts = split.periods(table, horizon)
-    train, calib, y = parts["train"], parts["calib"], f"y_{horizon}"
+    parts = split.periods(table, horizon, config.target)
+    train, calib, y = parts["train"], parts["calib"], label(config.target, horizon)
     groups = feature_groups(table.columns)
     features = [c for g in config.groups for c in groups[g]]
     weights = 0.5 ** ((split.train_end - train["ts"]).dt.total_seconds() / 86400 / HALF_LIFE_DAYS)
@@ -146,9 +154,8 @@ def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> 
     return HorizonModel(horizon, features, clf, calibrator)
 
 
-def climatology(train: pd.DataFrame, rows: pd.DataFrame, horizon: Horizon) -> np.ndarray:
-    """Baseline: training-period siren-start rate for the same region and hour of day."""
-    y = f"y_{horizon}"
+def climatology(train: pd.DataFrame, rows: pd.DataFrame, y: str) -> np.ndarray:
+    """Baseline: training-period event rate (column `y`) for the same region and hour of day."""
     key = lambda df: df["region"].astype(str) + "_" + df["hour"].astype(int).astype(str)  # noqa: E731
     rate = train.groupby(key(train))[y].mean()
     return key(rows).map(rate).fillna(train[y].mean()).to_numpy()
@@ -194,10 +201,11 @@ def evaluate(table: pd.DataFrame, test_end: pd.Timestamp, config: Config, test_d
     models, rows, rel = {}, [], {}
     for h in HORIZONS:
         model = fit(table, h, split, config)
-        parts = split.periods(table, h)
-        test, y = parts["test"], parts["test"][f"y_{h}"].to_numpy()
+        parts = split.periods(table, h, config.target)
+        col = label(config.target, h)
+        test, y = parts["test"], parts["test"][col].to_numpy()
         p = model.predict(test)
-        baselines = {"climatology": climatology(parts["train"], test, h), "base_rate": np.full(len(test), parts["train"][f"y_{h}"].mean())}
+        baselines = {"climatology": climatology(parts["train"], test, col), "base_rate": np.full(len(test), parts["train"][col].mean())}
         subsets = {"all": np.ones(len(test), dtype=bool), "rear": ~test["region"].isin(FRONTLINE).to_numpy()}
         for subset, m in subsets.items():
             for name, pred in {config.name: p, **baselines}.items():

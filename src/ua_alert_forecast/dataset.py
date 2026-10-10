@@ -17,8 +17,9 @@ import pandas as pd
 from .alerts import parse_post
 from .geo import NEIGHBORS, REGIONS, RING2
 
-Horizon = Literal["30m", "1h", "3h", "6h"]
+Horizon = Literal["15m", "30m", "1h", "3h", "6h"]
 HORIZONS: dict[Horizon, pd.Timedelta] = {
+    "15m": pd.Timedelta(minutes=15),
     "30m": pd.Timedelta(minutes=30),
     "1h": pd.Timedelta(hours=1),
     "3h": pd.Timedelta(hours=3),
@@ -145,6 +146,8 @@ def build_table(
         for r in REGIONS
         for g, kinds in THREAT_GROUPS.items()
     }
+    ends = {r: times((events["kind"] == "end") & (events["oblast"] == r)) for r in REGIONS}
+    all_ends = times(events["kind"] == "end")
     all_starts = times(events["kind"] == "start")
     all_drones = times((events["kind"] == "threat") & (events["detail"] == "drone"))
     national_active = np.sum([active[r] for r in REGIONS], axis=0)
@@ -165,6 +168,8 @@ def build_table(
             for g, ws in RADAR_GROUPS.items()
         }
         radar_down = {r: radar_series((radar["kind"] == "shot_down") & (radar["oblast"] == r))[0] for r in REGIONS}
+        radar_clear = {r: radar_series((radar["kind"] == "all_clear") & (radar["oblast"] == r))[0] for r in REGIONS}
+        radar_impact = {r: radar_series((radar["kind"] == "impact") & (radar["oblast"] == r))[0] for r in REGIONS}
         # Country-wide threat posts per weapon group, counted once per post whether or not it names an oblast.
         radar_national = {
             (g, wname): count_before(radar_series((radar["role"] == "post") & (radar["kind"] == "threat") & radar["weapon"].isin(ws))[0], t, w)
@@ -210,6 +215,28 @@ def build_table(
             f["radar_down_1h"] = count_before(radar_down[r], t, pd.Timedelta(hours=1))
             for (g, wname), counts in radar_national.items():
                 f[f"radar_national_{g}_{wname}"] = counts
+        # All-clear side, meaningful on rows under alert: how long the current alert has run, how many starts joined
+        # it, and partial clears here and next door.
+        iv = intervals[r]
+        i = np.searchsorted(iv[:, 0], t, side="left") - 1 if len(iv) else np.full(len(t), -1)
+        cur_start = np.where(active[r], iv[np.maximum(i, 0), 0] if len(iv) else 0, t)
+        cur_end = np.where(active[r], iv[np.maximum(i, 0), 1] if len(iv) else 0, 0)
+        f["clr_alert_minutes"] = (t - cur_start) / 6e10
+        f["clr_starts_in_alert"] = np.searchsorted(starts[r], t, side="left") - np.searchsorted(starts[r], cur_start, side="left")
+        for wname in ("30m", "1h"):
+            f[f"clr_ends_{wname}"] = count_before(ends[r], t, WINDOWS[wname])
+            f[f"clr_nb_ends_{wname}"] = np.sum([count_before(ends[n], t, WINDOWS[wname]) for n in nb], axis=0) if nb else 0
+        f["clr_national_ends_30m"] = count_before(all_ends, t, WINDOWS["30m"])
+        if radar is not None:
+            for wname in ("30m", "1h"):
+                f[f"clr_radar_clear_{wname}"] = count_before(radar_clear[r], t, WINDOWS[wname])
+                f[f"clr_radar_down_{wname}"] = count_before(radar_down[r], t, WINDOWS[wname])
+                f[f"clr_radar_impact_{wname}"] = count_before(radar_impact[r], t, WINDOWS[wname])
+        for h, d in HORIZONS.items():
+            # All-clear label (rows under alert): the region's alert ends in (t, t + d]. Ends come from all-clear posts
+            # or the ALERT_EXPIRY rule, the same rule live mode uses to show "alert now".
+            ended = active[r] & (cur_end <= t + d.value) & (cur_end <= data_end)
+            f[f"yc_{h}"] = np.where(active[r], np.where(ended, 1.0, np.where(t + d.value <= data_end, 0.0, np.nan)), np.nan)
         for h, d in HORIZONS.items():
             # Count of starts in (t, t + d]; label unknown (NaN) when the window runs past the data.
             n = np.searchsorted(starts[r], t + d.value, side="right") - np.searchsorted(starts[r], t, side="right")
@@ -224,7 +251,7 @@ def build_table(
     return table[~table["active"]].drop(columns="active").reset_index(drop=True)
 
 
-FEATURES_EXCLUDED = {"ts", "active", *(f"y_{h}" for h in HORIZONS)}
+FEATURES_EXCLUDED = {"ts", "active", *(f"y_{h}" for h in HORIZONS), *(f"yc_{h}" for h in HORIZONS)}
 
 
 def feature_columns(table: pd.DataFrame) -> list[str]:
@@ -242,4 +269,6 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "national": [c for c in cols if c.startswith("national_")],
         "radar": [c for c in cols if c.startswith(("radar_", "nb_radar_"))],
         "wave": [c for c in cols if c.startswith("wave_")],
+        "clear": [c for c in cols if c.startswith("clr_") and not c.startswith("clr_radar_")],
+        "clear_radar": [c for c in cols if c.startswith("clr_radar_")],
     }

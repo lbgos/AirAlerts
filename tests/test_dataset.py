@@ -69,3 +69,12 @@ def test_radar_features_count_only_earlier_posts(tmp_path):
     assert at("poltavska", "01:00")["radar_head_drone_30m"] == 2.5
     assert at("poltavska", "01:00")["radar_now_drone_30m"] == 0
     assert at("cherkaska", "01:00")["nb_radar_head_drone_30m"] == 2.5
+
+
+def test_all_clear_label_and_duration(tmp_path):
+    # Poltava oblast: red alert 01:05, all-clear 02:30.
+    table = build_table(events_from(POSTS, tmp_path), pd.Timestamp("2026-10-01T00:00Z"), pd.Timestamp("2026-10-01T04:00Z"), keep_active=True)
+    row = table[(table.region == "poltavska") & (table.ts == pd.Timestamp("2026-10-01T02:00Z"))].iloc[0]
+    assert row.active and row.clr_alert_minutes == 55
+    assert row.yc_15m == 0 and row.yc_30m == 1  # ends at 02:30, inside (02:00, 02:30]
+    assert pd.isna(table[(table.region == "poltavska") & ~table.active].iloc[0].yc_30m)  # no all-clear label when not under alert

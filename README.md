@@ -1,10 +1,16 @@
 # AirAlerts
 
-Forecasts the probability that an air raid siren **starts** in a Ukrainian oblast within the next 30 min / 1 h / 3 h / 6 h.
+For each Ukrainian oblast, forecasts within the next 15 min / 30 min / 1 h / 3 h / 6 h:
+
+- not under alert: the probability that an air raid siren **starts**;
+- under alert: the probability that the **all-clear** comes.
+
 Calibrated: a forecast of 70% should come true about 70% of the time.
 
 Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast at the current time and serves a one-page UI
-(Ukrainian/English, dark/light, horizon dropdown, map of oblasts shaded by probability, oblasts under alert hatched).
+(Ukrainian/English, dark/light, horizon dropdown, map shaded red by siren-start probability and blue by all-clear
+probability for oblasts under alert). Every poll's forecasts are logged to `data/live/predictions.jsonl`;
+`forecast score-live` scores them against what happened (`reports/live_score.md`).
 Map geometry: geoBoundaries UKR ADM1 (OpenStreetMap, ODbL), converted by `scripts/make_map.py`.
 
 ## Data
@@ -30,18 +36,36 @@ Older datasets (2022–2024) were not used: tactics changed, and recent data mat
 - Time split train | calibrate | test, purged so no label window crosses a boundary. Model selection used a separate
   14-day dev window; the final test window (last 14 days) was run once.
 
-## Results (final test, 2026-09-25 to 2026-10-09)
+## Results (final test: last 14 days, ending 2026-10-10)
 
-Model `r8_full_wave`. Brier score (lower is better) vs climatology (siren-start rate per oblast and hour of day):
+Siren starts, model `r8_full_wave`. Brier score (lower is better) vs climatology (rate per oblast and hour of day):
 
 | horizon | model | climatology | AUC | calibration error (ECE) |
 |:--|--:|--:|--:|--:|
-| 30m | 0.091 | 0.111 | 0.86 | 0.008 |
-| 1h | 0.122 | 0.159 | 0.86 | 0.023 |
-| 3h | 0.133 | 0.199 | 0.89 | 0.036 |
-| 6h | 0.114 | 0.187 | 0.92 | 0.033 |
+| 15m | 0.061 | 0.070 | 0.87 | 0.006 |
+| 30m | 0.093 | 0.114 | 0.86 | 0.013 |
+| 1h | 0.126 | 0.165 | 0.86 | 0.025 |
+| 3h | 0.135 | 0.206 | 0.89 | 0.041 |
+| 6h | 0.115 | 0.194 | 0.92 | 0.041 |
 
 Forecasts under 10% came true 2–4% of the time. The 0.8–0.9 band at 1h is overconfident (predicted 0.85, observed 0.76).
+The 15m horizon was added after the other four; its labels were checked blind by an LLM on 40 cases (40/40 agree).
+The rerun with 15m moved the test window half a day later than the first r8 run (live posts were appended).
+
+All-clear, model `c1_clear_full` (rows under alert; label: the oblast's alert ends within the horizon):
+
+| horizon | model | climatology | AUC | alerts that ended |
+|:--|--:|--:|--:|--:|
+| 15m | 0.126 | 0.139 | 0.72 | 17% |
+| 30m | 0.185 | 0.205 | 0.72 | 31% |
+| 1h | 0.207 | 0.228 | 0.74 | 51% |
+| 3h | 0.095 | 0.095 | 0.78 | 88% |
+| 6h | 0.022 | 0.022 | 0.85 | 98% |
+
+All-clear is harder than siren starts: about 10% better than climatology up to 1 h, no gain at 3–6 h (almost every alert
+ends within 3 h). 79–86% of alerts end with an explicit all-clear post; the rest end by the 3 h expiry rule.
+Radar features gave +0.001 mean skill on the dev window (better at 15–30 min, worse at 3–6 h); not used, since live
+mode would then need the radar channels and classifier.
 Full tables, including reliability per probability bin and rear oblasts (all except the six front-line/border oblasts):
 `reports/metrics.md`. The previous model without wave features: `reports/metrics_r2.md`.
 
@@ -76,9 +100,10 @@ uv run forecast scrape
 uv run forecast train --config r8_full_wave
 uv run pytest
 
-# live mode: refit on all data, then poll + serve http://<host>:8790
-uv run forecast fit-live --config r8_full_wave
+# live mode: refit both models on all data, then poll + serve http://<host>:8790; score the log later
+uv run forecast fit-live --config r8_full_wave --clear-config c1_clear_full
 uv run forecast live --host 127.0.0.1 --port 8790
+uv run forecast score-live
 ```
 
 Live mode reads only the alert channel: the final model uses no radar features. New posts are appended to

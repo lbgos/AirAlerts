@@ -19,9 +19,11 @@ def main() -> None:
     p_exp.add_argument("--report", default="experiments", help="report name: reports/<name>.md")
     p_fit = sub.add_parser("fit-live", help="refit a config on all data for live mode -> data/live_model.pkl")
     p_fit.add_argument("--config", default="r8_full_wave", choices=[c.name for c in experiments.CONFIGS])
+    p_fit.add_argument("--clear-config", default="c1_clear_full", choices=[c.name for c in experiments.CONFIGS])
     p_live = sub.add_parser("live", help="poll the alert channel, forecast now, serve the web page")
     p_live.add_argument("--host", default="127.0.0.1")
     p_live.add_argument("--port", type=int, default=8790)
+    sub.add_parser("score-live", help="score logged live forecasts against outcomes -> reports/live_score.md")
     args = parser.parse_args()
 
     if args.command == "login":
@@ -33,6 +35,8 @@ def main() -> None:
     elif args.command == "experiments":
         experiments.run(args.only, args.report)
     elif args.command == "fit-live":
-        train.fit_live(experiments.BY_NAME[args.config])
+        train.fit_live(experiments.BY_NAME[args.config], experiments.BY_NAME[args.clear_config])
     elif args.command == "live":
         asyncio.run(live.run(args.host, args.port))
+    elif args.command == "score-live":
+        live.score()

@@ -57,6 +57,10 @@ CONFIGS = [
     Config("r7_time_history_radar", groups=("time", "history", "radar"), lgbm=SMALL, calib_days=7),
     # Round 8: alert-wave timing (minutes since the latest neighbor siren, second-ring neighbors) on the round-2 winner
     Config("r8_full_wave", groups=FULL + ("wave",), lgbm=SMALL, calib_days=7),
+    # All-clear (rows under alert; label: the oblast's alert ends within the horizon). c1 = first round.
+    Config("c1_clear_time", groups=("time", "clear"), lgbm=SMALL, calib_days=7, target="clear"),
+    Config("c1_clear_full", groups=FULL + ("wave", "clear"), lgbm=SMALL, calib_days=7, target="clear"),
+    Config("c1_clear_full_radar", groups=FULL + ("wave", "clear", "radar", "clear_radar"), lgbm=SMALL, calib_days=7, target="clear"),
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 

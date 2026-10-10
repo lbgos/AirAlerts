@@ -27,18 +27,21 @@ def load_table(with_radar: bool = True) -> pd.DataFrame:
         radar = label_history(RAW_DIR, RADAR_LABELS, RADAR_CHANNELS_USED, end - pd.Timedelta(days=STUDENT_DAYS_BEFORE_END))
     # Features need up to 24h of history, so the first forecast time is a day after the data starts.
     start = max(events["ts"].min(), pd.Timestamp(HISTORY_START)) + pd.Timedelta(hours=24)
-    return build_table(events, start, end, radar=radar)
+    # Rows under alert are kept (all-clear models); start models filter them out in Split.periods.
+    return build_table(events, start, end, radar=radar, keep_active=True)
 
 
 def train(config: Config) -> None:
     table = load_table()
     test_end = table["ts"].max()
     models, metrics, rel = evaluate(table, test_end, config)
-    MODELS_PATH.write_bytes(pickle.dumps({"config": config, "models": models}))
+    suffix = "" if config.target == "start" else "_clear"
+    MODELS_PATH.with_stem(MODELS_PATH.stem + suffix).write_bytes(pickle.dumps({"config": config, "models": models}))
     REPORT_DIR.mkdir(exist_ok=True)
     lines = [
         f"# Final test: {config.name}",
         "",
+        f"Target: {'siren starts (rows not under alert)' if config.target == 'start' else 'all-clear (rows under alert)'}. "
         f"Data until {test_end:%Y-%m-%d %H:%M} UTC, {len(table):,} rows. Test window: last 14 days, "
         f"calibration: {config.calib_days} days before it ({config.calibration}), training: everything earlier.",
         "",
@@ -48,20 +51,23 @@ def train(config: Config) -> None:
     ]
     for h, r in rel.items():
         lines += ["", f"## Reliability, {h}", "", r.round(3).to_markdown()]
-    (REPORT_DIR / "metrics.md").write_text("\n".join(lines) + "\n")
+    (REPORT_DIR / f"metrics{suffix}.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 
 
-def fit_live(config: Config) -> None:
-    """Refit `config` on all data for live use: train on everything but the last calib_days, calibrate on those.
-
-    The final-test models leave out the latest 14 days; tactics drift, so live forecasts use them too.
+def fit_live(config: Config, clear_config: Config) -> None:
+    """Refit the start and all-clear configs on all data for live use: train on everything but the last calib_days,
+    calibrate on those. The final-test models leave out the latest 14 days; tactics drift, so live uses them too.
     """
-    if "radar" in config.groups:
-        raise SystemExit("live mode reads only the alert channel; pick a config without the radar group")
+    if any(g in c.groups for c in (config, clear_config) for g in ("radar", "clear_radar")):
+        raise SystemExit("live mode reads only the alert channel; pick configs without radar groups")
     table = load_table(with_radar=False)
     end = table["ts"].max()
-    split = Split.ending(end, test_days=0, calib_days=config.calib_days)
-    models = {h: fit(table, h, split, config) for h in HORIZONS}
-    LIVE_MODEL_PATH.write_bytes(pickle.dumps({"config": config, "models": models, "data_end": end}))
-    print(f"{config.name}: fitted on data until {end:%Y-%m-%d %H:%M} UTC -> {LIVE_MODEL_PATH}")
+
+    def fit_all(c: Config) -> dict:
+        split = Split.ending(end, test_days=0, calib_days=c.calib_days)
+        return {h: fit(table, h, split, c) for h in HORIZONS}
+
+    bundle = {"config": config, "models": fit_all(config), "clear_config": clear_config, "clear_models": fit_all(clear_config), "data_end": end}
+    LIVE_MODEL_PATH.write_bytes(pickle.dumps(bundle))
+    print(f"{config.name} + {clear_config.name}: fitted on data until {end:%Y-%m-%d %H:%M} UTC -> {LIVE_MODEL_PATH}")
