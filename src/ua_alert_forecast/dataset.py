@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 
 from .alerts import AlertEvent, parse_post
-from .geo import NEIGHBORS, REGIONS
+from .geo import NEIGHBORS, REGIONS, RING2
 
 Horizon = Literal["30m", "1h", "3h", "6h"]
 HORIZONS: dict[Horizon, pd.Timedelta] = {
@@ -184,6 +184,12 @@ def build_table(
             for wname, w in WINDOWS.items():
                 f[f"{g}_{wname}"] = count_before(threats[(r, g)], t, w)
                 f[f"nb_{g}_{wname}"] = np.sum([count_before(threats[(n, g)], t, w) for n in nb], axis=0) if nb else 0
+        # Alert-wave timing: how recently the nearest siren started next door, and what the second ring is doing.
+        ring2 = RING2[r]
+        f["wave_nb_min_since_start"] = np.min([minutes_since(starts[n], t) for n in nb], axis=0) if nb else np.full(len(t), 24 * 60.0)
+        f["wave_ring2_active"] = np.sum([active[n] for n in ring2], axis=0) if ring2 else np.zeros(len(t))
+        for wname in ("1h", "3h"):
+            f[f"wave_ring2_starts_{wname}"] = np.sum([count_before(starts[n], t, WINDOWS[wname]) for n in ring2], axis=0) if ring2 else 0
         for wname, w in WINDOWS.items():
             f[f"nb_starts_{wname}"] = np.sum([count_before(starts[n], t, w) for n in nb], axis=0) if nb else 0
         if radar is not None:
@@ -224,4 +230,5 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "neighbors": [c for c in cols if c.startswith("nb_") and not c.startswith("nb_radar_")],
         "national": [c for c in cols if c.startswith("national_")],
         "radar": [c for c in cols if c.startswith(("radar_", "nb_radar_"))],
+        "wave": [c for c in cols if c.startswith("wave_")],
     }

@@ -35,6 +35,11 @@ for _a, _bs in _BORDERS.items():
         NEIGHBORS[_a].append(_b)
         NEIGHBORS[_b].append(_a)
 
+# Second ring: neighbors of neighbors, excluding the region and its direct neighbors. Alert waves cross several oblasts.
+RING2: dict[str, list[str]] = {
+    r: sorted({m for n in NEIGHBORS[r] for m in NEIGHBORS[n]} - set(NEIGHBORS[r]) - {r}) for r in REGIONS
+}
+
 # Oblasts on the front line or the Russian border, where sirens follow short-range threats (KABs, artillery, FPVs).
 # Experiments also report "rear" = all other regions, where long-range drones and missiles drive sirens.
 FRONTLINE = {"kharkivska", "sumska", "donetska", "zaporizka", "khersonska", "luhanska"}

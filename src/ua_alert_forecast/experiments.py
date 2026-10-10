@@ -55,6 +55,8 @@ CONFIGS = [
     # counts that include posts naming no oblast (launches, take-offs). Same groups as round 6.
     Config("r7_full_radar", groups=FULL + ("radar",), lgbm=SMALL, calib_days=7),
     Config("r7_time_history_radar", groups=("time", "history", "radar"), lgbm=SMALL, calib_days=7),
+    # Round 8: alert-wave timing (minutes since the latest neighbor siren, second-ring neighbors) on the round-2 winner
+    Config("r8_full_wave", groups=FULL + ("wave",), lgbm=SMALL, calib_days=7),
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 
