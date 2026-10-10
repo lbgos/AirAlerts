@@ -12,7 +12,7 @@ W = pd.Timedelta(minutes=60)
 ev = load_events(RAW_DIR / "UkraineAlarmSignal.jsonl")
 end = ev.ts.max()
 # raketa mentions from Haiku labels (now_in or heading_to)
-lab = [json.loads(l) for f in sorted(Path(__file__).resolve().parents[1] / "labels" / "raketa_v2".glob("chunk_*.jsonl")) for l in open(f)]
+lab = [json.loads(l) for f in sorted((Path(__file__).resolve().parents[1] / "labels" / "raketa_v2").glob("chunk_*.jsonl")) for l in open(f)]
 dates = {json.loads(l)["id"]: json.loads(l)["date"] for l in open(RAW_DIR / "raketa_trevoga.jsonl")}
 rk = pd.DataFrame([{"ts": pd.Timestamp(dates[l["id"]]), "oblast": o, "kind": l["kind"]}
                    for l in lab if l["kind"] == "threat" for o in set(l["now_in"]) | set(l["heading_to"])])
