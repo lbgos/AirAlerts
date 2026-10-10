@@ -1,0 +1,8 @@
+.env
+*.session
+*.session-journal
+.venv/
+__pycache__/
+data/
+NOTES.md
+HANDOFF.md

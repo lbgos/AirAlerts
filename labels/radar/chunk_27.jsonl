@@ -1,0 +1,100 @@
+{"channel": "deraketaua", "id": 63107, "kind": "threat", "weapon": "jet_drone", "oblasts": ["cherkaska", "kyivska"]}
+{"channel": "deraketaua", "id": 63108, "kind": "all_clear", "weapon": null, "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63109, "kind": "threat", "weapon": "kab", "oblasts": ["zaporizka", "dnipropetrovska"]}
+{"channel": "deraketaua", "id": 63110, "kind": "shot_down", "weapon": "kab", "oblasts": ["zaporizka", "dnipropetrovska"]}
+{"channel": "deraketaua", "id": 63111, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska", "kirovohradska", "poltavska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63112, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63113, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "chernihivska", "zhytomyrska"]}
+{"channel": "deraketaua", "id": 63114, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "chernihivska", "zhytomyrska"]}
+{"channel": "deraketaua", "id": 63115, "kind": "shot_down", "weapon": "jet_drone", "oblasts": ["zhytomyrska"]}
+{"channel": "deraketaua", "id": 63116, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63117, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "zhytomyrska"]}
+{"channel": "deraketaua", "id": 63118, "kind": "all_clear", "weapon": null, "oblasts": ["kyivska", "zhytomyrska"]}
+{"channel": "deraketaua", "id": 63119, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska"]}
+{"channel": "deraketaua", "id": 63120, "kind": "shot_down", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska"]}
+{"channel": "deraketaua", "id": 63121, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska", "poltavska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63122, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63123, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63124, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63125, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63126, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63127, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63128, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv", "kyivska"]}
+{"channel": "deraketaua", "id": 63129, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63130, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63131, "kind": "threat", "weapon": "jet_drone", "oblasts": ["dnipropetrovska", "poltavska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63132, "kind": "threat", "weapon": "unknown", "oblasts": ["chernihivska", "kyivska"]}
+{"channel": "deraketaua", "id": 63133, "kind": "threat", "weapon": "unknown", "oblasts": ["kyivska", "zhytomyrska"]}
+{"channel": "deraketaua", "id": 63134, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "dnipropetrovska", "poltavska"]}
+{"channel": "deraketaua", "id": 63135, "kind": "threat", "weapon": "unknown", "oblasts": ["zhytomyrska"]}
+{"channel": "deraketaua", "id": 63136, "kind": "threat", "weapon": "unknown", "oblasts": ["zhytomyrska"]}
+{"channel": "deraketaua", "id": 63137, "kind": "threat", "weapon": "unknown", "oblasts": ["zhytomyrska"]}
+{"channel": "deraketaua", "id": 63138, "kind": "threat", "weapon": "unknown", "oblasts": ["zhytomyrska", "rivnenska"]}
+{"channel": "deraketaua", "id": 63139, "kind": "shot_down", "weapon": "missile", "oblasts": ["rivnenska"]}
+{"channel": "deraketaua", "id": 63140, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska"]}
+{"channel": "deraketaua", "id": 63141, "kind": "threat", "weapon": "missile", "oblasts": []}
+{"channel": "deraketaua", "id": 63142, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63143, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63144, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63145, "kind": "all_clear", "weapon": null, "oblasts": []}
+{"channel": "deraketaua", "id": 63146, "kind": "threat", "weapon": "shahed", "oblasts": ["chernihivska", "kyivska"]}
+{"channel": "deraketaua", "id": 63147, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63148, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63149, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63150, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63151, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv", "kyivska"]}
+{"channel": "deraketaua", "id": 63152, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63153, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63154, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63155, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63156, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63157, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63158, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63159, "kind": "all_clear", "weapon": null, "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63160, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63161, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63162, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63163, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "chernihivska"]}
+{"channel": "deraketaua", "id": 63164, "kind": "all_clear", "weapon": null, "oblasts": []}
+{"channel": "deraketaua", "id": 63165, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska", "poltavska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63166, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63167, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv", "kyivska"]}
+{"channel": "deraketaua", "id": 63168, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv", "kyivska"]}
+{"channel": "deraketaua", "id": 63169, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63170, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63171, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "chernihivska"]}
+{"channel": "deraketaua", "id": 63172, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63173, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63174, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63175, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63176, "kind": "all_clear", "weapon": null, "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63177, "kind": "threat", "weapon": "jet_drone", "oblasts": ["zhytomyrska"]}
+{"channel": "deraketaua", "id": 63178, "kind": "shot_down", "weapon": "jet_drone", "oblasts": ["zhytomyrska"]}
+{"channel": "deraketaua", "id": 63179, "kind": "threat", "weapon": "jet_drone", "oblasts": ["odeska", "vinnytska"]}
+{"channel": "deraketaua", "id": 63180, "kind": "threat", "weapon": "jet_drone", "oblasts": ["vinnytska"]}
+{"channel": "deraketaua", "id": 63181, "kind": "other", "weapon": null, "oblasts": []}
+{"channel": "deraketaua", "id": 63182, "kind": "shot_down", "weapon": "jet_drone", "oblasts": ["vinnytska"]}
+{"channel": "deraketaua", "id": 63183, "kind": "threat", "weapon": "jet_drone", "oblasts": ["chernihivska", "kyivska", "poltavska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63184, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63185, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63186, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63187, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63188, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63189, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63190, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63191, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63192, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv", "kyivska"]}
+{"channel": "deraketaua", "id": 63193, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63194, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv", "chernihivska", "kyivska"]}
+{"channel": "deraketaua", "id": 63195, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv", "chernihivska", "poltavska", "cherkaska"]}
+{"channel": "deraketaua", "id": 63196, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63197, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63198, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63199, "kind": "impact", "weapon": "jet_drone", "oblasts": ["kyiv"]}
+{"channel": "deraketaua", "id": 63200, "kind": "other", "weapon": null, "oblasts": []}
+{"channel": "deraketaua", "id": 63201, "kind": "shot_down", "weapon": "unknown", "oblasts": ["vinnytska"]}
+{"channel": "deraketaua", "id": 63202, "kind": "threat", "weapon": "jet_drone", "oblasts": ["cherkaska", "kyivska", "chernihivska", "poltavska", "kirovohradska"]}
+{"channel": "deraketaua", "id": 63203, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "chernihivska"]}
+{"channel": "deraketaua", "id": 63204, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska"]}
+{"channel": "deraketaua", "id": 63205, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyivska", "kyiv"]}
+{"channel": "deraketaua", "id": 63206, "kind": "threat", "weapon": "jet_drone", "oblasts": ["kyiv", "kyivska"]}
