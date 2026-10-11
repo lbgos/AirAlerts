@@ -94,8 +94,8 @@ keeps working with the existing live collector.
 
 `git log --oneline main..glm-rethink`:
 
-    8de0aa0 Summary report for the Kyiv rethink round
-    4a0a56d Guard: none-arm fix; final-test + guard reports
+    HEAD (a31da05+): Summary report for the Kyiv rethink round
+    ba6d875 Guard: none-arm fix; final-test and guard reports
     7f1da41 Dev batch results: two-stage wave wins 30m/1h; corridor/carrier/seq nulls
     15bb8ec Pin LightGBM to four threads
     c564ae5 Cache float32 table after first cast
@@ -104,5 +104,5 @@ keeps working with the existing live collector.
     f4f462b Two-stage wave model, corridor/carrier text tracks, order features, event eval runs
     90abf9b Event-based Kyiv evaluation: recall/lead, alarm-stretch precision, four-state view
 
-`uv run pytest -q`: 41 passed (parser, leakage, neighbors, labels + 8 new event tests + 8 radar-text tests
+`uv run pytest -q`: 38 passed (parser, leakage, neighbors, labels + 8 new event tests + 8 radar-text tests
 + wave-gate test).
