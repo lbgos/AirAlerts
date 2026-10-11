@@ -109,9 +109,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/history.json" and PREDICTION_LOG.exists() and query.get("region", "").replace("_", "").isalpha():
             region = query["region"]
             if "start" in query:
-                past = {a["start"]: a for a in history.alerts(PREDICTION_LOG, region, pd.Timestamp.now(tz="UTC"))["alerts"]}
-                alert = past.get(int(query["start"])) if query["start"].isdigit() else None
-                data = history.forecasts(PREDICTION_LOG, region, alert["start"], alert["end"]) if alert else None
+                data = history.forecasts(PREDICTION_LOG, region, int(query["start"])) if query["start"].isdigit() else None
             else:
                 data = history.alerts(PREDICTION_LOG, region, pd.Timestamp.now(tz="UTC"))
             if data is None:

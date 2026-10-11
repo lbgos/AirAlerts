@@ -1,21 +1,26 @@
 """Past alerts of one region and what the live model forecast before each one, read from the prediction log.
 
 Served by `forecast live` as /history.json (live.Handler):
-  ?region=kyiv                    -> {since, alerts}: alerts of the last DAYS days whose start the log saw (the poll
-                                     before it was clear), newest first; since = first logged time in that window
-  ?region=kyiv&start=<epoch s>    -> that alert's forecasts: start chances up to LEAD before it, all-clear chances
-                                     up to LEAD before its end; one point per minute, as logged at the time
+  ?region=kyiv                    -> {since, alerts}: alerts of the last DAYS days whose start the log saw (the entry
+                                     before it was clear), newest first, each with `peak`: the highest siren-start
+                                     forecast in the horizon before it, per model ("p" tested, "pu" untested) and horizon
+  ?region=kyiv&start=<epoch s>    -> that alert's minute-by-minute forecasts from LEAD before it (or the previous
+                                     alert's end) to its end: start chances while clear, all-clear chances during it
 Only forecasts the page actually showed are used, so nothing here is replayed with hindsight.
 """
 
 import json
+from bisect import bisect_left
 from pathlib import Path
 
 import pandas as pd
 
+from .dataset import HORIZONS
+
 DAYS = 7
-LEAD = pd.Timedelta(hours=6)  # longest horizon: earlier forecasts never covered the event
+LEAD = max(HORIZONS.values())  # forecasts earlier than the longest horizon never covered the alert
 MAX_GAP = pd.Timedelta(minutes=5)  # a clear -> alert switch across a longer logging gap has no known start
+MODELS = ("p", "pu")
 
 
 def tail_lines(path: Path, since: pd.Timestamp) -> list[str]:
@@ -36,52 +41,76 @@ def tail_lines(path: Path, since: pd.Timestamp) -> list[str]:
             chunk *= 4
 
 
-def alerts(log: Path, region: str, now: pd.Timestamp) -> dict:
-    """{"since": epoch s, "alerts": [{start, end}]} in epoch seconds; end is None while the alert is still on."""
-    key = f'"{region}": {{"active": '
-    out, prev_t, prev_active = [], None, None
-    lines = tail_lines(log, now - pd.Timedelta(days=DAYS))
-    for line in lines:
+def region_log(log: Path, region: str, since: pd.Timestamp) -> list[tuple[pd.Timestamp, dict]]:
+    """(t, {"active", "p", "pu"?}) for the region since `since`, the first entry of each minute.
+
+    Decodes only the region's object in each line, so a week of a 25-region log stays fast.
+    """
+    key, decoder = f'"{region}": ', json.JSONDecoder()
+    out, last = [], None
+    for line in tail_lines(log, since):
+        t = pd.Timestamp(line[7:32])
         i = line.find(key)
-        if i < 0:
+        if t.floor("min") == last or i < 0:
             continue
-        t, active = pd.Timestamp(line[7:32]), line[i + len(key)] == "t"
+        out.append((t, decoder.raw_decode(line, i + len(key))[0]))
+        last = t.floor("min")
+    return out
+
+
+def find_alerts(rows: list[tuple[pd.Timestamp, dict]]) -> list[dict]:
+    """[{start, end}] (Timestamps, oldest first); end is None while the alert is on, or the last entry before a gap."""
+    out, prev_t, prev_active = [], None, None
+    for t, r in rows:
         gap = prev_t is not None and t - prev_t > MAX_GAP
         if gap and out and out[-1]["end"] is None:
-            out[-1]["end"] = int(prev_t.timestamp())  # logging stopped during the alert: end unknown, cut it there
-        if active and prev_active is False and not gap:
-            out.append({"start": int(t.timestamp()), "end": None})
-        elif not active and prev_active and out and out[-1]["end"] is None:
-            out[-1]["end"] = int(t.timestamp())
-        prev_t, prev_active = t, active
-    return {"since": int(pd.Timestamp(lines[0][7:32]).timestamp()) if lines else None, "alerts": out[::-1]}
+            out[-1]["end"] = prev_t  # logging stopped during the alert: end unknown, cut it there
+        if r["active"] and prev_active is False and not gap:
+            out.append({"start": t, "end": None})
+        elif not r["active"] and prev_active and out and out[-1]["end"] is None:
+            out[-1]["end"] = t
+        prev_t, prev_active = t, r["active"]
+    return out
 
 
-def forecasts(log: Path, region: str, start: int, end: int | None) -> dict:
-    """The region's logged forecasts before `start` (siren start) and before `end` (all-clear), one per minute.
+def alerts(log: Path, region: str, now: pd.Timestamp) -> dict:
+    """{"since": epoch s, "alerts": [{start, end, peak}]}, newest first; times in epoch seconds."""
+    window = now - pd.Timedelta(days=DAYS)
+    rows = region_log(log, region, window - LEAD)
+    times = [t for t, _ in rows]
+    out = []
+    for a in find_alerts(rows):
+        if a["start"] < window:
+            continue
+        lo, hi = bisect_left(times, a["start"] - LEAD), bisect_left(times, a["start"])
+        before = [(t, r) for t, r in rows[lo:hi] if not r["active"]]
+        peak = {}
+        for m in MODELS:
+            vals = {h: [r[m][h] for t, r in before if m in r and t >= a["start"] - span] for h, span in HORIZONS.items()}
+            peak[m] = {h: max(v) if v else None for h, v in vals.items()}
+        out.append({"start": int(a["start"].timestamp()), "end": a["end"] and int(a["end"].timestamp()), "peak": peak})
+    since = next((t for t in times if t >= window), None)
+    return {"since": since and int(since.timestamp()), "alerts": out[::-1]}
 
-    Each part: {"t": [epoch s], "p": {h: [..]}, "pu": {h: [..]}}; pu (untested model) values are None before it was logged.
+
+def forecasts(log: Path, region: str, start: int) -> dict | None:
+    """One alert's forecasts: {"start", "end", "t": [epoch s], "active": [..], "p": {h: [..]}, "pu": {h: [..]}}.
+
+    "p"/"pu" hold siren-start chances while clear and all-clear chances while under alert; pu values are None before
+    the untested model was logged. None if the log has no alert starting at `start`.
     """
-    t0, t1 = pd.Timestamp(start, unit="s", tz="UTC"), pd.Timestamp(end or start, unit="s", tz="UTC")
-    parts = {"before_start": [], "before_end": []}
-    seen = set()
-    for line in tail_lines(log, t0 - LEAD):
-        t = pd.Timestamp(line[7:32])
-        if t > t1 or t.floor("min") in seen:
-            continue
-        seen.add(t.floor("min"))
-        r = json.loads(line)["regions"].get(region)
-        if r is None:
-            continue
-        if t < t0:  # only since the region's previous alert ended
-            parts["before_start"] = [] if r["active"] else parts["before_start"] + [(t, r)]
-        elif end and t0 <= t < t1 and t >= t1 - LEAD and r["active"]:
-            parts["before_end"].append((t, r))
-    for name, rows in parts.items():
-        horizons = list(rows[0][1]["p"]) if rows else []
-        parts[name] = {
-            "t": [int(t.timestamp()) for t, _ in rows],
-            "p": {h: [r["p"][h] for _, r in rows] for h in horizons},
-            "pu": {h: [r["pu"][h] if "pu" in r else None for _, r in rows] for h in horizons},
-        }
-    return {"start": start, "end": end, **parts}
+    t0 = pd.Timestamp(start, unit="s", tz="UTC")
+    rows = region_log(log, region, t0 - LEAD)
+    alert = next((a for a in find_alerts(rows) if a["start"] == t0), None)
+    if alert is None:
+        return None
+    end = alert["end"] or rows[-1][0]
+    first = max((i + 1 for i, (t, r) in enumerate(rows) if t < t0 and r["active"]), default=0)  # after the previous alert
+    rows = [(t, r) for t, r in rows[first:] if t <= end]
+    return {
+        "start": start,
+        "end": alert["end"] and int(alert["end"].timestamp()),
+        "t": [int(t.timestamp()) for t, _ in rows],
+        "active": [r["active"] for _, r in rows],
+        **{m: {h: [r[m][h] if m in r else None for _, r in rows] for h in HORIZONS} for m in MODELS},
+    }

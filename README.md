@@ -26,10 +26,10 @@ UI in Ukrainian and English. The map shades oblasts red by the chance a siren st
 all-clear for oblasts already under alert. Every poll's forecasts go to `data/live/predictions.jsonl`, and
 `forecast score-live` scores them against what happened (`reports/live_score.md`).
 
-Tap an oblast to see its alerts of the last 7 days from that log. For each alert the page shows what the chosen model
-said at the time, as a table (3 h, 1 h, 30, 15 and 5 min before the siren and before the all-clear) and as
-minute-by-minute charts. The last horizon before the event is shaded. Every forecast in the shading was followed by
-the event within the horizon, so a good model is high inside it and low before it.
+Tap an oblast to open its alerts of the last 7 days from that log. Each alert shows the highest siren forecast the
+chosen model gave in the horizon before it, as logged at the time. Tap an alert for a clock-time chart: the alert is a
+red block, and the forecast line runs red before it (siren chance) and blue during it (all-clear chance), with exact
+values 60, 30, 15 and 5 min before the siren and before the all-clear.
 
 Map geometry: geoBoundaries UKR ADM1 (OpenStreetMap, ODbL), converted by `scripts/make_map.py`.
 
