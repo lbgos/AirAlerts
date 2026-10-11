@@ -247,3 +247,5 @@ session are mounted, so a redeploy keeps the collected posts and the prediction 
 days, calibrate on those); live mode picks up the new model without a restart. On the last 3 days of data, a model
 calibrated on the 7 days right before them beat one 21 days older at 1 h (Brier 0.148 vs 0.152) and 3 h (0.133 vs
 0.145), and was confidently wrong less often; at 15 min they were equal.
+The page also has a model toggle: "untested" is fitted on all data up to the last post, with no calibration hold-out
+(raw LightGBM probabilities) and no test; the page says so. The refit container peaks at about 5.3 GB.

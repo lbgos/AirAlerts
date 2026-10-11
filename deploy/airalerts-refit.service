@@ -8,5 +8,5 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/docker run --rm --name airalerts-refit --memory 5g --cpus 1.5 \
+ExecStart=/usr/bin/docker run --rm --name airalerts-refit --memory 8g --cpus 1.5 \
   -v /opt/services/airalerts/data:/app/data airalerts-airalerts uv run --no-sync forecast fit-live
