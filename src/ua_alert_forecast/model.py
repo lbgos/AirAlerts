@@ -213,7 +213,8 @@ class Ensemble:
 
 def make_classifier(config: Config, features: list[str]):
     if config.family == "lgbm":
-        params = {"min_child_samples": 50, "subsample": 0.8, "subsample_freq": 1, "colsample_bytree": 0.8, "verbose": -1}
+        params = {"min_child_samples": 50, "subsample": 0.8, "subsample_freq": 1, "colsample_bytree": 0.8,
+                  "num_threads": 4, "verbose": -1}  # threads pinned to the resource quota (400%)
         return lgb.LGBMClassifier(**(params | config.lgbm))
     numeric = [f for f in features if f != "region"]
     columns = ColumnTransformer([("region", OneHotEncoder(handle_unknown="ignore"), ["region"]), ("num", StandardScaler(), numeric)])
