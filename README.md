@@ -7,6 +7,17 @@ For each Ukrainian oblast, forecasts within the next 15 min / 30 min / 1 h / 3 h
 
 Calibrated: a forecast of 70% should come true about 70% of the time.
 
+Live: **https://alerts.lbgos.dev** · AI conversation log:
+[files.lbgos.dev](https://files.lbgos.dev/f/498a7bfba84a976e8a3679b01fef5f22/airalerts-ai-log-49164c7d.html)
+
+In short: the forecast is reliable about calm and about rising risk, and says so when it is unsure. On the final test
+(last 14 days), 15-minute forecasts under 10% were followed by a siren 1% of the time, and forecasts of 30% or more came
+true 42% of the time. The high AUC (0.88–0.92, all oblasts) comes mostly from telling calm hours from active ones. A
+confident "siren in the next 15 minutes" is out of reach with public data: in Kyiv city, when nothing is happening
+nearby, a siren follows about 1 time in 100, and in the most dangerous state found about 1 in 4
+([Where it ends](#looking-for-more-signal-research-round)). Over 20 more public sources, from radar channels to Rassvet
+satellite passes, were tested and did not change this.
+
 Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast at the current time and serves a one-page UI
 (Ukrainian/English, dark/light, horizon dropdown, map shaded red by siren-start probability and blue by all-clear
 probability for oblasts under alert). Every poll's forecasts are logged to `data/live/predictions.jsonl`;
