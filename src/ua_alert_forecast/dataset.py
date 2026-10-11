@@ -410,7 +410,10 @@ def build_table(
             # Count of starts in (t, t + d]; label unknown (NaN) when the window runs past the data.
             n = np.searchsorted(starts[r], t + d.value, side="right") - np.searchsorted(starts[r], t, side="right")
             f[f"y_{h}"] = np.where(t + d.value <= data_end, (n > 0).astype(float), np.nan)
-        frames.append(pd.DataFrame(f))
+        frame = pd.DataFrame(f)
+        wide = frame.select_dtypes("float64").columns  # float32 halves the peak: the table is over 2M rows
+        frame[wide] = frame[wide].astype("float32")
+        frames.append(frame)
 
     table = pd.concat(frames, ignore_index=True)
     table["ts"] = pd.to_datetime(table["ts"], utc=True)

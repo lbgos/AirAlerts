@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ua_alert_forecast.model import Conservative, penalty, points, wilson
+from ua_alert_forecast.model import Conservative, WaveGateModel, penalty, points, wilson
 
 
 def test_penalty_weights_confident_wrong_forecasts():
@@ -33,3 +33,21 @@ def test_points_reward_confident_right_and_punish_confident_wrong():
     wrong_sure = points(np.array([0]), np.array([0.9]), clim)
     assert right_sure > 3 * right_unsure > 0  # x3 reward on top of the bigger gain
     assert wrong_sure < -10 * abs(points(np.array([0]), np.array([0.7]), clim))
+
+
+def test_wave_gate_is_the_product_of_its_stages():
+    """The two-stage model's promise: P(siren in h) = P(wave within 3h) * P(siren in h | wave within 3h)."""
+    import pandas as pd
+
+    class Stub:
+        def __init__(self, p):
+            self.p = p
+
+        def predict(self, rows):
+            return np.full(len(rows), self.p)
+
+    rows = pd.DataFrame({"a": [1, 2, 3]})
+    gate, hazard = Stub(0.6), Stub(0.5)
+    model = WaveGateModel("15m", [], gate, hazard)
+    out = model.predict(rows)
+    assert np.allclose(out, 0.3)
