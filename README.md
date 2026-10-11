@@ -130,6 +130,41 @@ a Kyiv-oblast raion siren within 15 min only 22% of the time (within 1 h 41%), a
 forecast is decisive one way: under 30% (most of the time) a siren follows 7–9% of the time. 70%+ forecasts appear
 at 3 h (54%, came true 86%) and 6 h (76%, came true 91%), not at 15–60 min.
 
+Those long horizons are mostly the base rate: a Kyiv siren comes within 6 h 86% of the time. A rule "how often was
+there a siren at this hour on the last 7 days" is right 86% of the time when it says yes at 6 h (model: 91%), 74% at
+3 h (model: 86%), and is no better than chance at 1 h (AUC 0.53, model 0.71). The model reads the current situation,
+but the 6 h number tells a user little.
+
+### Looking for more signal (research round)
+
+After k1 the question was whether any public source can do better. Each idea was measured against Kyiv city sirens,
+leakage-free, by agents working from the same data (scratch scripts outside the repo):
+
+| idea | result |
+|:--|:--|
+| radar-channel positions as distance to Kyiv (kpszsu, deraketaua, nebo) | a drone named within 20 km while the oblast is alerted: city siren within 15 min 29% of the time; 44% of city sirens have under 10 min of any notice |
+| early launch reports (war_monitor launch/take-off posts) | precede 18% of city sirens 30 min–6 h ahead; random times: 19% |
+| bomber / MiG-31K take-off posts | real lead (median ~1 h) but 6–10% of city sirens at most; no model gain |
+| Rassvet satellite passes, weather, moon, day of week, strike cadence | no usable effect (massive nights come about every 4–5 days, close to random) |
+| two-stage model (wave, then siren within it), town-level radar tracks, event order features | no gain at equal alarm time (below) |
+| GPS jamming maps, internet outages (IODA), Russian airport closures, NOTAMs | null or wrong direction (outages precede 4.7% of sirens, chance 5%) |
+| 10 more public monitor channels (t.me/s previews, last 1–2 weeks) | each adds coverage only by adding alarm time (below) |
+
+**Scoring trap.** Event scores ("sirens with a warning before them") reward a warning that is always on. Two results
+looked like breakthroughs until the share of time the warning was on was checked: a two-stage model caught every
+siren of the last week with an hour's notice, but at that threshold it was on 98% of the time; nebo_raketa plus six
+more monitor channels "caught" 93% of sirens, with a post in the last hour 92% of the calm time (nebo alone: 70%
+caught, 62% of the time on). With the warning on for the same 30% of the time, both models flag the same share of the forecasts that a siren
+followed (15 min: 57% two-stage vs 59% k1; 1 h: 42% vs 43%). Any recall number needs the alarm time next to it.
+
+**Where it ends.** About half the time nothing is happening near Kyiv, and then a siren within 15 min follows about
+1 time in 100. In the most dangerous state found (Kyiv oblast alerted in the last 10 min), it is about 1 in 4. Drones
+near Kyiv often turn away or are shot down, and ballistic missiles fly about 4 minutes, so public data cannot carry a
+confident "siren in the next 15 minutes". What the forecast can say reliably is "calm" and "something is building".
+
+The last week (2026-10-04 to 10-11) was used as the final test for several rounds, so it is no longer unseen data.
+The two-stage experiments are on the unmerged branch `glm-rethink`.
+
 ## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
 
 | features | skill |
