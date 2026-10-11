@@ -2,7 +2,8 @@
 
 Only the alert channel is read: the chosen model uses no radar features (see README).
 New posts are appended to data/raw/UkraineAlarmSignal.jsonl in the scraper's format, so live data can be trained on later.
-The page (web/index.html) fetches /state.json, rewritten after every poll, and /ukraine.json (map, scripts/make_map.py).
+The page (web/index.html) fetches /state.json, rewritten after every poll, /ukraine.json (map, scripts/make_map.py)
+and /history.json (a region's past alerts and the forecasts logged before them, history.py).
 """
 
 import asyncio
@@ -12,10 +13,12 @@ import threading
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pandas as pd
 from telethon import TelegramClient
 
+from . import history
 from .config import RAW_DIR, ROOT
 from .dataset import HORIZONS, build_table, events_from_posts
 from .scrape import last_saved_id, make_client, to_row
@@ -96,12 +99,25 @@ def write_state(state: dict) -> None:
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
-        path = self.path.split("?")[0]
+        url = urlsplit(self.path)
+        path, query = url.path, {k: v[0] for k, v in parse_qs(url.query).items()}
         if path in STATIC:
             name, ctype = STATIC[path]
             body = (WEB_DIR / name).read_bytes()
         elif path == "/state.json" and STATE_PATH.exists():
             body, ctype = STATE_PATH.read_bytes(), "application/json"
+        elif path == "/history.json" and PREDICTION_LOG.exists() and query.get("region", "").replace("_", "").isalpha():
+            region = query["region"]
+            if "start" in query:
+                past = {a["start"]: a for a in history.alerts(PREDICTION_LOG, region, pd.Timestamp.now(tz="UTC"))["alerts"]}
+                alert = past.get(int(query["start"])) if query["start"].isdigit() else None
+                data = history.forecasts(PREDICTION_LOG, region, alert["start"], alert["end"]) if alert else None
+            else:
+                data = history.alerts(PREDICTION_LOG, region, pd.Timestamp.now(tz="UTC"))
+            if data is None:
+                self.send_error(404)
+                return
+            body, ctype = json.dumps(data).encode(), "application/json"
         else:
             self.send_error(404)
             return

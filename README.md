@@ -21,6 +21,9 @@ Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast at the 
 (Ukrainian/English, dark/light, horizon dropdown, map shaded red by siren-start probability and blue by all-clear
 probability for oblasts under alert). Every poll's forecasts are logged to `data/live/predictions.jsonl`;
 `forecast score-live` scores them against what happened (`reports/live_score.md`).
+Tapping an oblast lists its alerts of the last 7 days from that log, and for each one shows what the chosen model
+said at the time: a table at 3 h / 1 h / 30 / 15 / 5 min before the siren and before the all-clear, and minute-by-minute
+charts with the last horizon before the event shaded (forecasts after which it did happen within the horizon).
 Map geometry: geoBoundaries UKR ADM1 (OpenStreetMap, ODbL), converted by `scripts/make_map.py`.
 
 ## Data

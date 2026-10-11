@@ -61,6 +61,18 @@
   .bar i { display: block; height: 100%; border-radius: 3px; }
   li.active { padding: 6px 0; }
   .name small { display: block; color: var(--dim); font-size: 12px; margin-top: 1px; }
+  .hist { font-size: 13px; }
+  .hist table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+  .hist th, .hist td { padding: 3px 0; text-align: right; font-weight: 400; color: var(--dim); }
+  .hist th:first-child, .hist td:first-child { text-align: left; }
+  .hist td.in { color: var(--fg); font-weight: 650; }
+  .hist .hl { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
+  .hist .hl b { font-weight: 650; }
+  .hist svg { margin-top: 4px; touch-action: pan-y; cursor: crosshair; }
+  .hist svg text { font-weight: 400; fill: var(--dim); }
+  .hist ol { max-height: 236px; overflow-y: auto; margin-top: 10px; border-top: 1px solid var(--line); }
+  .hist ol li { display: flex; justify-content: space-between; padding: 7px 0; }
+  .hist .dim { color: var(--dim); font-size: 12px; margin-top: 8px; line-height: 1.5; }
   footer { margin-top: 16px; color: var(--dim); font-size: 12px; line-height: 1.5; }
   .stale { color: #ff9f0a; }
 </style>
@@ -84,6 +96,7 @@
   <span><span class="swatch nodata"></span><span id="nodataKey"></span></span>
 </div>
 <p class="caption" id="caption"></p>
+<div class="hist" id="history"></div>
 <ol id="list"></ol>
 <footer id="foot"></footer>
 
@@ -109,6 +122,11 @@ const T = {
     alert: "тривога", alertNow: "тривога зараз", nodata: "окуповано", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
     variants: { tested: "перевірена модель", untested: "неперевірена модель" },
     untestedNote: "Неперевірена модель: навчена на всіх даних до останнього поста, без калібрування і без перевірки. Її відсотки можуть бути завищені або занижені.",
+    ongoing: "триває", beforeStart: "до тривоги", beforeEnd: "до відбою", chartStart: "перед тривогою", chartEnd: "перед відбоєм",
+    lead: (d, k) => `за ${d} ${k === "start" ? "до тривоги" : "до відбою"}`,
+    noAlerts: "За 7 днів тривог із записаним прогнозом немає. Прогнози записуються з",
+    noRecord: "Для цієї моделі запису немає: неперевірена модель записується з 11.10.",
+    histNote: (h) => `Що обрана модель показувала перед цією тривогою, як записано тоді. Жирним і заштриховано: прогнози, після яких подія справді настала протягом ${h}. Влучна модель дає тут високі відсотки, а раніше низькі. Проведіть по графіку, щоб побачити кожну хвилину.`,
     stale: "дані застаріли", model: "модель", trained: "навчена до", tap: "Торкніться області на мапі або в списку.",
     note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени. Мапа: geoBoundaries, © OpenStreetMap. Зроблено на Python: LightGBM, scikit-learn, pandas, NumPy, Telethon.",
   },
@@ -121,6 +139,11 @@ const T = {
     alert: "alert", alertNow: "alert now", nodata: "occupied", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
     variants: { tested: "tested model", untested: "untested model" },
     untestedNote: "Untested model: trained on all data up to the last post, with no calibration and no test. Its percentages may run high or low.",
+    ongoing: "ongoing", beforeStart: "before the alert", beforeEnd: "before all-clear", chartStart: "before the alert", chartEnd: "before the all-clear",
+    lead: (d, k) => `${d} ${k === "start" ? "before the alert" : "before the all-clear"}`,
+    noAlerts: "No alerts with a logged forecast in the last 7 days. Forecasts are logged since",
+    noRecord: "No record for this model: the untested model is logged since 11.10.",
+    histNote: (h) => `What the chosen model showed before this alert, as logged at the time. Bold and shaded: forecasts after which the event did happen within ${h}. A good model is high there and low before. Drag across the chart to see each minute.`,
     stale: "data is stale", model: "model", trained: "trained until", tap: "Tap an oblast on the map or in the list.",
     note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens. Map: geoBoundaries, © OpenStreetMap. Built with Python: LightGBM, scikit-learn, pandas, NumPy, Telethon.",
   },
@@ -149,6 +172,10 @@ const P = (r) => (variant === "untested" && r.pu ? r.pu : r.p);
 const PC = (r) => (variant === "untested" && r.pcu ? r.pcu : r.pc);
 let theme = themePref;
 let state = null, geo = null, selected = null;
+// Selected oblast's past alerts (/history.json): {region, since, alerts: [{start, end}], start: picked alert, data: its forecasts}
+let hist = null;
+const LEADS = [180, 60, 30, 15, 5]; // table columns: minutes before the event
+const HMIN = { "15m": 15, "30m": 30, "1h": 60, "3h": 180, "6h": 360 };
 
 const $ = (id) => document.getElementById(id);
 const locale = () => (lang === "uk" ? "uk-UA" : "en-GB");
@@ -240,6 +267,8 @@ function render() {
     ? `<b>${name(s.id)}</b> · ${s.active ? `${t.alert} ${duration(s.alert_minutes, t)} · ${t.clearIn} ${pct(PC(s)[horizon])} ${t.within} ${t.h[horizon]}` : `${t.startKey} ${pct(P(s)[horizon])} ${t.within} ${t.h[horizon]}`}`
     : `<span style="color:var(--dim)">${t.tap}</span>`;
 
+  renderHistory(t);
+
   const rows = [...regions].sort((a, b) =>
     a.active !== b.active ? (a.active ? 1 : -1) : a.active ? PC(b)[horizon] - PC(a)[horizon] : P(b)[horizon] - P(a)[horizon]);
   $("list").innerHTML = rows.map((r) => {
@@ -261,12 +290,117 @@ function render() {
     `<div>${t.note}</div>`;
 }
 
-async function load() {
+// Forecasts of the chosen model and horizon in one part of an alert's history (null where nothing was logged).
+const series = (part) => (variant === "untested" ? part.pu : part.p)[horizon] ?? [];
+const leadLabel = (m, t) => (m < 60 ? `${m} ${t.min}` : `${m / 60} ${t.hr}`);
+
+// Logged value `m` minutes before `event`: the last point at or before then, at most 2 minutes earlier.
+function valueAt(part, m, event) {
+  const target = event - m * 60, s = series(part);
+  let v = null;
+  for (let i = 0; i < part.t.length && part.t[i] <= target; i++) v = target - part.t[i] <= 120 ? s[i] : null;
+  return v;
+}
+
+// Line of forecasts before `event` (siren start or all-clear); the last `horizon` before it is shaded: there the
+// event did happen within the horizon. The window shown is twice the horizon, 1-6 h.
+// Chart margins in CSS pixels; the viewBox width is the panel's pixel width, so text stays the same size on any screen.
+const CH = { H: 112, L: 36, R: 4, TOP: 8, B: 20 };
+function chart(part, kind, event) {
+  const W = $("history").clientWidth || 360, { H, L, R, TOP, B } = CH, hm = HMIN[horizon], s = series(part);
+  const x0 = Math.max(event - Math.min(360, Math.max(60, 2 * hm)) * 60, part.t[0] ?? event), x1 = event;
+  const X = (ts) => L + ((ts - x0) / (x1 - x0 || 1)) * (W - L - R), Y = (p) => TOP + (1 - p) * (H - TOP - B);
+  const hue = kind === "start" ? "var(--red)" : CLEAR_RAMPS[document.documentElement.dataset.theme][3];
+  let d = "", last = null;
+  part.t.forEach((ts, i) => {
+    if (ts < x0 || s[i] == null) return void (last = null);
+    d += `${last !== null && ts - last <= 180 ? "L" : "M"}${X(ts).toFixed(1)},${Y(s[i]).toFixed(1)}`;
+    last = ts;
+  });
+  const span = (x1 - x0) / 60, step = span <= 70 ? 15 : span <= 130 ? 30 : 60, t = T[lang];
+  let ticks = "";
+  for (let m = 0; m <= span; m += step) ticks += `<text x="${X(event - m * 60)}" y="${H - 6}" font-size="11"${m ? "" : ' style="text-anchor:end"'}>${m ? "−" + leadLabel(m, t) : "0"}</text>`;
+  const hx = X(Math.max(event - hm * 60, x0));
+  return `<svg viewBox="0 0 ${W} ${H}" data-kind="${kind}" data-event="${event}" data-x0="${x0}" data-w="${W}">
+    <rect x="${hx}" y="${TOP}" width="${X(x1) - hx}" height="${H - TOP - B}" fill="${hue}" opacity="0.16"/>
+    ${[0, 0.5, 1].map((p) => `<line x1="${L}" x2="${W - R}" y1="${Y(p)}" y2="${Y(p)}" stroke="var(--line)" stroke-width="1.5"/><text x="${L - 5}" y="${Y(p)}" font-size="11" style="text-anchor:end">${p * 100}%</text>`).join("")}
+    <line x1="${X(x1)}" x2="${X(x1)}" y1="${TOP}" y2="${H - B}" stroke="${hue}" stroke-width="2"/>
+    <path d="${d}" fill="none" stroke="${hue}" stroke-width="2.5" stroke-linejoin="round"/>
+    ${ticks}<g class="cur"></g></svg>`;
+}
+
+function renderHistory(t) {
+  const box = $("history");
+  if (!selected || hist?.region !== selected) return void (box.innerHTML = "");
+  if (!hist.alerts.length) return void (box.innerHTML = `<div class="dim">${t.noAlerts} ${hist.since ? date(hist.since * 1000) : "—"}.</div>`);
+  const a = hist.alerts.find((x) => x.start === hist.start), data = hist.data;
+  let out = "";
+  if (data && !series(data.before_start).some((v) => v != null) && !series(data.before_end).some((v) => v != null)) {
+    out += `<div class="dim">${t.noRecord}</div>`;
+  } else if (data) {
+    const hm = HMIN[horizon], row = (label, part, event) =>
+      `<tr><td>${label}</td>${LEADS.map((m) => `<td class="${m <= hm ? "in" : ""}">${!event ? t.ongoing : valueAt(part, m, event) == null ? "—" : pct(valueAt(part, m, event))}</td>`).join("")}</tr>`;
+    out += `<table><tr><th></th>${LEADS.map((m) => `<th>${leadLabel(m, t)}</th>`).join("")}</tr>` +
+      row(t.beforeStart, data.before_start, data.start) + row(t.beforeEnd, data.before_end, data.end) + "</table>";
+    const part = (kind, p, event, label) => p.t.length
+      ? `<div class="hl"><span>${label} <b>${time(event * 1000)}</b></span><span id="read-${kind}"></span></div>${chart(p, kind, event)}` : "";
+    out += part("start", data.before_start, data.start, t.chartStart);
+    if (data.end) out += part("clear", data.before_end, data.end, t.chartEnd);
+    out += `<div class="dim">${t.histNote(t.h[horizon])}</div>`;
+  }
+  out += `<ol>${hist.alerts.map((x) => `<li data-start="${x.start}"${x === a ? ' class="selected"' : ""}><span>${date(x.start * 1000)} ${time(x.start * 1000)}–${x.end ? time(x.end * 1000) : t.ongoing}</span>` +
+    `<span>${x.end ? duration(Math.round((x.end - x.start) / 60), t) : ""}</span></li>`).join("")}</ol>`;
+  box.innerHTML = out;
+}
+
+// Chart cursor: the point nearest the pointer, drawn in place (no re-render, so a drag is not interrupted).
+function scrub(e) {
+  const svg = e.target.closest("svg");
+  if (!svg || !hist?.data) return;
+  const kind = svg.dataset.kind, event = +svg.dataset.event, x0 = +svg.dataset.x0;
+  const part = kind === "start" ? hist.data.before_start : hist.data.before_end, s = series(part);
+  const W = +svg.dataset.w, { H, L, R, TOP, B } = CH, box = svg.getBoundingClientRect(), vx = ((e.clientX - box.left) / box.width) * W;
+  const ts = x0 + ((vx - L) / (W - L - R)) * (event - x0);
+  let best = -1;
+  part.t.forEach((v, i) => { if (v >= x0 && s[i] != null && (best < 0 || Math.abs(v - ts) < Math.abs(part.t[best] - ts))) best = i; });
+  if (best < 0) return;
+  const x = L + ((part.t[best] - x0) / (event - x0 || 1)) * (W - L - R), y = TOP + (1 - s[best]) * (H - TOP - B), t = T[lang];
+  svg.querySelector(".cur").innerHTML = `<line x1="${x}" x2="${x}" y1="${TOP}" y2="${H - B}" stroke="var(--fg)" stroke-width="1.5"/><circle cx="${x}" cy="${y}" r="5" fill="var(--fg)"/>`;
+  $(`read-${kind}`).innerHTML = `${time(part.t[best] * 1000)} · ${t.lead(duration(Math.round((event - part.t[best]) / 60), t), kind)} · <b>${pct(s[best])}</b>`;
+}
+
+async function getJSON(url) {
   try {
-    const res = await fetch("state.json", { cache: "no-store" });
-    if (res.ok) state = await res.json();
-  } catch {}
+    const res = await fetch(url, { cache: "no-store" });
+    return res.ok ? await res.json() : null;
+  } catch { return null; }
+}
+
+// Alert list of the selected oblast; keeps the picked alert (default: the latest) and refetches its forecasts while it runs.
+async function loadHistory() {
+  const region = selected;
+  if (!region) return void (hist = null);
+  const list = await getJSON(`history.json?region=${region}`);
+  if (!list || selected !== region) return;
+  const prev = hist?.region === region ? hist : null;
+  const start = prev && list.alerts.some((a) => a.start === prev.start) ? prev.start : list.alerts[0]?.start;
+  const alert = list.alerts.find((a) => a.start === start);
+  const data = prev?.start === start ? prev.data : null;
+  hist = { region, since: list.since, alerts: list.alerts, start, data };
+  if (alert && (!data || alert.end === null || data.end !== alert.end)) await loadAlert(start);
   render();
+}
+
+async function loadAlert(start) {
+  const region = hist.region, data = await getJSON(`history.json?region=${region}&start=${start}`);
+  if (data && hist?.region === region && hist.start === start) hist.data = data;
+}
+
+async function load() {
+  const s = await getJSON("state.json");
+  if (s) state = s;
+  render();
+  if (selected) loadHistory();
 }
 
 function select(e) {
@@ -274,10 +408,23 @@ function select(e) {
   if (!id) return;
   selected = selected === id ? null : id;
   render();
+  if (selected) loadHistory();
+  if (selected && e.currentTarget === $("list")) $("caption").scrollIntoView({ block: "start" });
 }
 
 $("map").addEventListener("click", select);
 $("list").addEventListener("click", select);
+$("history").addEventListener("click", async (e) => {
+  const li = e.target.closest("li[data-start]");
+  if (!li || !hist) return;
+  hist.start = +li.dataset.start;
+  hist.data = null;
+  render();
+  await loadAlert(hist.start);
+  render();
+});
+$("history").addEventListener("pointerdown", scrub);
+$("history").addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons) scrub(e); });
 $("horizon").addEventListener("change", (e) => { horizon = e.target.value; localStorage.setItem("horizon", horizon); render(); });
 $("variant").addEventListener("change", (e) => { variant = e.target.value; localStorage.setItem("variant", variant); render(); });
 $("lang").addEventListener("click", () => { lang = lang === "uk" ? "en" : "uk"; localStorage.setItem("lang", lang); render(); });
