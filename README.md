@@ -176,6 +176,27 @@ confident "siren in the next 15 minutes". What the forecast can say reliably is 
 The last week (2026-10-04 to 10-11) was used as the final test for several rounds, so it is no longer unseen data.
 The two-stage experiments are on the unmerged branch `glm-rethink`.
 
+### Training start and daily recalibration (round r1)
+
+Three ideas on the final model (`f1s_recent_cons`), picked on the dev window (14 days before the final test). Daily
+recalibration refits the calibrator before each test day on the 1, 3 or 7 days before it, so it never sees the test day
+(alternating calibration and test days would leak: one night's attack spans both days).
+
+| siren starts, dev window | 15m Brier | 15m ECE | 15m points | 1h Brier | 1h ECE | 1h points |
+|:--|--:|--:|--:|--:|--:|--:|
+| final model (calibrated once on 7 days) | 0.0577 | 0.010 | 70.7 | 0.1121 | 0.033 | 49.3 |
+| train from 2026-01-01 (drop December) | 0.0577 | 0.010 | 67.8 | 0.1122 | 0.033 | 48.2 |
+| average of the two models | 0.0577 | 0.010 | 69.0 | 0.1121 | 0.033 | 48.7 |
+| daily Platt, previous 3 days | 0.0576 | 0.005 | 57.8 | 0.1090 | 0.010 | 44.8 |
+| daily Platt, previous 7 days | 0.0576 | 0.006 | 59.5 | 0.1091 | 0.013 | 47.4 |
+| daily conservative cap, previous 1 day | 0.0613 | 0.051 | 29.5 | 0.1157 | 0.052 | 39.5 |
+
+Dropping December changes nothing (with a 60-day half-life it already weighs little), so averaging the two adds nothing.
+Daily Platt makes percentages more honest (calibration error 2–3x lower, Brier 3% lower at 1 h, the same ranking) but
+drops the conservative cap, so more confident forecasts are wrong: on the final window at 1 h, 5.8% of confident
+forecasts were wrong against 4.6% promised. The cap needs more than one day of cases. The live model is unchanged.
+Script: `scripts/recal_eval.py`.
+
 ## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
 
 | features | skill |
