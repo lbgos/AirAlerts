@@ -16,6 +16,8 @@ import pandas as pd
 
 from .alerts import parse_post
 from .geo import NEIGHBORS, REGIONS, RING2
+from .nebo import GROUPS as NEBO_GROUPS
+from .nebo import KYIV_REGIONS as NEBO_REGIONS
 
 Horizon = Literal["15m", "30m", "1h", "3h", "6h"]
 HORIZONS: dict[Horizon, pd.Timedelta] = {
@@ -126,11 +128,14 @@ def build_table(
     grid: pd.DatetimeIndex | None = None,
     keep_active: bool = False,
     step: pd.Timedelta = STEP,
+    nebo: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Feature + label table on a grid of `step` (default 15 minutes) in [start, end). Labels need data up to end + 6h.
 
     Live mode passes `grid` (the forecast times, e.g. just "now") and `keep_active=True` to get an `active`
     column instead of dropping regions already under alert.
+
+    `nebo` (optional): output of `nebo.load_events`, counted for the Kyiv city and Kyiv oblast rows (zero elsewhere).
 
     `radar` (optional): output of `radar.to_events` (rows per post, role and oblast, with weights). Role "heading_to" is where an object is going but not yet: the direction signal that
     neighbor sirens don't carry.
@@ -184,6 +189,9 @@ def build_table(
             for wname, w in RADAR_NATIONAL_WINDOWS.items()
         }
 
+    if nebo is not None:
+        nebo_times = {g: np.sort(nebo.loc[nebo["group"] == g, "ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64)) for g in ("post", *NEBO_GROUPS)}
+
     kyiv_time = grid.tz_convert("Europe/Kyiv")
     frames = []
     for r in REGIONS:
@@ -234,6 +242,12 @@ def build_table(
         f["rc_national_ends_10m"] = count_before(all_ends, t, RECENT)
         f["rc_nb_newly_active_15m"] = np.sum([active[n] & ~active_15m_ago[n] for n in nb], axis=0) if nb else 0
         f["rc_national_active_change_15m"] = national_active - np.sum([active_15m_ago[n] for n in REGIONS], axis=0)
+        if nebo is not None:
+            kyiv = r in NEBO_REGIONS
+            for g, ts_ in nebo_times.items():
+                for wname, w in {"10m": RECENT, "30m": WINDOWS["30m"]}.items():
+                    f[f"neb_{g}_{wname}"] = count_before(ts_, t, w) if kyiv else np.zeros(len(t), dtype=np.int64)
+                f[f"neb_min_since_{g}"] = minutes_since(ts_, t) if kyiv else np.full(len(t), 24 * 60.0)
         if radar is not None:
             for role in roles:
                 for g in RADAR_GROUPS:
@@ -300,4 +314,5 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "clear": [c for c in cols if c.startswith("clr_") and not c.startswith("clr_radar_")],
         "clear_radar": [c for c in cols if c.startswith("clr_radar_")],
         "recent": [c for c in cols if c.startswith("rc_")],
+        "nebo": [c for c in cols if c.startswith("neb_")],
     }

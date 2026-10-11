@@ -93,6 +93,21 @@ Previous models on the same window: `reports/metrics_p1.md` (no last-minutes fea
 All-clear, same steps: skill 0.069 → 0.067 → 0.075 → 0.073, points −2.3 → −1.6 → −1.1 → 15.4.
 `reports/experiments_f1.md`, `reports/experiments_f1_all.md` (all horizons: the final models are no worse at 30m–6h).
 
+### Kyiv and @nebo_raketa
+
+`@nebo_raketa` follows drones over Kyiv city and oblast in short posts; `nebo.py` turns them into keyword groups
+(new drone, Kyiv city named, diving, missile, clear) counted over the last 10/30 min for the two Kyiv regions. Posts
+edited more than a minute after publishing count from the edit time (the scrape keeps only the final text).
+Kyiv city, last week (`scripts/kyiv_week.py`, `reports/kyiv_week_test.md`; features fixed on the week before):
+
+| 15-minute siren forecast | sirens | caught at 50%+ | false alarms at 50%+ | caught at 30%+ | false alarms at 30%+ | Brier (climatology 0.094) |
+|:--|--:|--:|--:|--:|--:|--:|
+| alert channel only (live) | 45 | 6 | 5 | 26 | 42 | 0.087 |
+| + @nebo_raketa | 45 | 15 | 24 | 29 | 58 | 0.095 |
+
+The channel adds little on top of the alert channel: when Kyiv oblast is already under alert, a city siren follows
+within 15 min 26% of the time after a "new drone" post vs 18% without one. Live mode keeps the alert-channel model.
+
 ## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
 
 | features | skill |

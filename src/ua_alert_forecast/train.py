@@ -6,6 +6,7 @@ import pandas as pd
 
 from .config import HISTORY_START, RAW_DIR, ROOT
 from .dataset import HORIZONS, STEP, build_table, load_events
+from .nebo import load_events as load_nebo
 from .radar import label_history
 from .model import Config, Split, evaluate, fit
 
@@ -13,13 +14,14 @@ MODELS_PATH = ROOT / "data" / "models.pkl"
 LIVE_MODEL_PATH = ROOT / "data" / "live_model.pkl"
 REPORT_DIR = ROOT / "reports"
 LABEL_CHANNEL = "UkraineAlarmSignal"
+NEBO_CHANNEL = "nebo_raketa"
 RADAR_CHANNELS_USED = ["kpszsu", "deraketaua"]
 RADAR_LABELS = ROOT / "labels" / "radar_v2"
 # The radar student only learns from teacher labels before the dev window (which starts 28 days before the data ends).
 STUDENT_DAYS_BEFORE_END = 28
 
 
-def load_table(with_radar: bool = True, step: pd.Timedelta = STEP) -> pd.DataFrame:
+def load_table(with_radar: bool = True, step: pd.Timedelta = STEP, with_nebo: bool = False) -> pd.DataFrame:
     events = load_events(RAW_DIR / f"{LABEL_CHANNEL}.jsonl")
     end = events["ts"].max()
     radar = None
@@ -28,7 +30,8 @@ def load_table(with_radar: bool = True, step: pd.Timedelta = STEP) -> pd.DataFra
     # Features need up to 24h of history, so the first forecast time is a day after the data starts.
     start = max(events["ts"].min(), pd.Timestamp(HISTORY_START)) + pd.Timedelta(hours=24)
     # Rows under alert are kept (all-clear models); start models filter them out in Split.periods.
-    return build_table(events, start, end, radar=radar, keep_active=True, step=step)
+    nebo = load_nebo(RAW_DIR / f"{NEBO_CHANNEL}.jsonl") if with_nebo else None
+    return build_table(events, start, end, radar=radar, keep_active=True, step=step, nebo=nebo)
 
 
 def train(config: Config) -> None:

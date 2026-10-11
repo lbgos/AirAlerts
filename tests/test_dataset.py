@@ -94,3 +94,19 @@ def test_yellow_and_red_are_one_alert(tmp_path):
     table = build_table(events_from(posts, tmp_path), pd.Timestamp("2026-10-01T03:00Z"), pd.Timestamp("2026-10-01T04:30Z"), keep_active=True)
     kyiv = table[table.region == "kyiv"].set_index("ts")["active"]
     assert kyiv["2026-10-01T03:30Z"] and kyiv["2026-10-01T03:45Z"] and not kyiv["2026-10-01T04:15Z"]
+
+
+def test_nebo_post_edited_later_counts_from_the_edit(tmp_path):
+    from ua_alert_forecast.nebo import load_events as load_nebo
+
+    path = tmp_path / "nebo.jsonl"
+    rows = [{"date": "2026-10-01T03:00:00+00:00", "edit_date": "2026-10-01T03:40:00+00:00", "text": "🛵 БпЛА на Бровари\n\nUpd. Наразі область чиста"},
+            {"date": "2026-10-01T03:10:00+00:00", "edit_date": "2026-10-01T03:10:20+00:00", "text": "Теличка - Південний міст🔻"}]
+    path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
+    nebo = load_nebo(path)
+    table = build_table(events_from(POSTS, tmp_path), pd.Timestamp("2026-10-01T03:00Z"), pd.Timestamp("2026-10-01T04:00Z"), nebo=nebo)
+    at = lambda region, hhmm: table[(table.region == region) & (table.ts == pd.Timestamp(f"2026-10-01T{hhmm}Z"))].iloc[0]  # noqa: E731
+    assert at("kyivska", "03:15")["neb_clear_30m"] == 0  # "Upd. ... чиста" was added at 03:40
+    assert at("kyivska", "03:45")["neb_clear_10m"] == 1
+    assert at("kyivska", "03:15")["neb_city_10m"] == 1 and at("kyivska", "03:15")["neb_down_10m"] == 1
+    assert at("poltavska", "03:15")["neb_city_10m"] == 0  # Kyiv regions only

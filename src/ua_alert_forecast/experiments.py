@@ -85,6 +85,10 @@ CONFIGS = [
             ("recent_cons_z1", ("recent",), None, SMALL, "conservative", 1.0),
         ]
     ],
+    # Round f2 (user, Kyiv): the f1 winners plus @nebo_raketa keyword features for Kyiv city and oblast.
+    Config("f2s_nebo", groups=FULL + ("wave", "recent", "nebo"), lgbm=SMALL, calib_days=7, calibration="conservative", step_minutes=5),
+    Config("f2c_nebo", groups=FULL + ("wave", "clear", "recent", "nebo"), lgbm=SMALL, calib_days=7, calibration="conservative",
+           step_minutes=5, target="clear"),
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 
@@ -107,7 +111,8 @@ def summarize(res: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
 def run(only: list[str] | None = None, report: str = "experiments", step_minutes: int = 15, horizons: list[str] | None = None) -> None:
     configs = [c for c in CONFIGS if not only or c.name in only]
     radar = any(g in c.groups for c in configs for g in ("radar", "clear_radar"))
-    table = load_table(with_radar=radar, step=pd.Timedelta(minutes=step_minutes))
+    nebo = any("nebo" in c.groups for c in configs)
+    table = load_table(with_radar=radar, step=pd.Timedelta(minutes=step_minutes), with_nebo=nebo)
     dev_end = table["ts"].max() - pd.Timedelta(days=14)
     rows = []
     for config in configs:
