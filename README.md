@@ -9,21 +9,28 @@ Calibrated: a forecast of 70% should come true about 70% of the time.
 
 Live: **https://alerts.lbgos.dev**
 
-In short: the forecast is reliable about calm and about rising risk, and says so when it is unsure. On the final test
-(last 14 days), 15-minute forecasts under 10% were followed by a siren 1% of the time, and forecasts of 30% or more came
-true 42% of the time. The high AUC (0.88–0.92, all oblasts) comes mostly from telling calm hours from active ones. A
-confident "siren in the next 15 minutes" is out of reach with public data: in Kyiv city, when nothing is happening
-nearby, a siren follows about 1 time in 100, and in the most dangerous state found about 1 in 4
-([Where it ends](#looking-for-more-signal-research-round)). Over 20 more public sources, from radar channels to Rassvet
-satellite passes, were tested and did not change this.
+The forecast is good at two things, saying "calm" and saying "something is building", and it admits when it is
+unsure. On the final test (last 14 days), 15-minute forecasts under 10% were followed by a siren 1% of the time, and
+forecasts of 30% or more came true 42% of the time. The high AUC (0.88–0.92 across oblasts) comes mostly from telling
+calm hours from active ones. A confident "siren in the next 15 minutes" is out of reach with public data. In Kyiv
+city, when nothing is happening nearby, a siren follows about 1 time in 100, and in the most dangerous state found
+about 1 in 4 ([Where it ends](#looking-for-more-signal-research-round)). Over 20 more public sources, from radar
+channels to Rassvet satellite passes, did not change this.
 
-Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast at the current time and serves a one-page UI
-(Ukrainian/English, dark/light, horizon dropdown, map shaded red by siren-start probability and blue by all-clear
-probability for oblasts under alert). Every poll's forecasts are logged to `data/live/predictions.jsonl`;
+The first live day held up. On 16 logged hours of 10–11 October, a heavy day, the 15-minute forecast scored Brier 0.077
+against 0.088 for a constant forecast that knew the day's siren rate in advance. Siren-start percentages up to 1 h
+matched what happened within 3.5 points. At 3 h and 6 h they ran low ([Live forecasts](#live-forecasts-vs-what-happened)).
+
+Live mode polls `@UkraineAlarmSignal` every 30 s, forecasts every oblast for the current moment and serves a one-page
+UI in Ukrainian and English. The map shades oblasts red by the chance a siren starts, and blue by the chance of an
+all-clear for oblasts already under alert. Every poll's forecasts go to `data/live/predictions.jsonl`, and
 `forecast score-live` scores them against what happened (`reports/live_score.md`).
-Tapping an oblast lists its alerts of the last 7 days from that log, and for each one shows what the chosen model
-said at the time: a table at 3 h / 1 h / 30 / 15 / 5 min before the siren and before the all-clear, and minute-by-minute
-charts with the last horizon before the event shaded (forecasts after which it did happen within the horizon).
+
+Tap an oblast to see its alerts of the last 7 days from that log. For each alert the page shows what the chosen model
+said at the time, as a table (3 h, 1 h, 30, 15 and 5 min before the siren and before the all-clear) and as
+minute-by-minute charts. The last horizon before the event is shaded. Every forecast in the shading was followed by
+the event within the horizon, so a good model is high inside it and low before it.
+
 Map geometry: geoBoundaries UKR ADM1 (OpenStreetMap, ODbL), converted by `scripts/make_map.py`.
 
 ## Data
@@ -37,7 +44,7 @@ All from public Telegram channels, scraped with Telethon (`forecast login`, `for
   logistic regression), trained on 3,000 posts labeled once by an LLM. No LLM runs at forecast time.
   Tested in three rounds and not used by the final model (see below).
 
-Older datasets (2022–2024) were not used: tactics changed, and recent data matches what the model sees live.
+Older datasets (2022–2024) are not used. Tactics have changed since, and recent data matches what the model sees live.
 
 ## Method
 
@@ -85,14 +92,43 @@ All-clear, model `f1c_recent_cons` (oblasts under alert):
 | 3h | 0.154 | 0.167 | 0.85 | 62% | 6.6% / 9.1% |
 | 6h | 0.118 | 0.131 | 0.88 | 76% | 3.9% / 12.1% |
 
-The 15-minute forecast: sirens start in 8% of 15-minute windows. Forecasts of 30% or more came true 42% of the time
-and preceded 38% of sirens; forecasts under 10% came true 1% of the time (`reports/accuracy.md`, also Kyiv).
+Sirens start in 8% of 15-minute windows. 15-minute forecasts of 30% or more came true 42% of the time and preceded
+38% of sirens. Forecasts under 10% came true 1% of the time (`reports/accuracy.md`, which also covers Kyiv).
 On the dev window only 5% of 15-minute sirens came with no threat note or siren here or next door in the previous
-30 min, so the limit is telling which nearby activity turns into a siren here, not missing activity.
+30 min. So the limit is telling which nearby activity turns into a siren here. It is not activity the data misses.
 
 Previous models on the same window: `reports/metrics_p1.md` (no last-minutes features, 15-minute grid; 15m Brier
 0.060, all-clear 0.102). Models before the alert-duration fix (3 h expiry): `reports/metrics_r8_3h_rule.md`,
 `reports/metrics_clear_c1_3h_rule.md`.
+
+### Live forecasts vs what happened
+
+The live log is the only test on data that did not exist when the models were built. Every forecast in it came from a
+model trained only on earlier data. It covers 10 October 16:30 to 11 October 21:38 UTC with the final models,
+minus a server outage from 18:01 to 07:09, so about 16 hours. 11 October was busy: sirens started in 9.7% of
+15-minute windows, against 8% on the final test. The baseline is a constant forecast at the rate that actually
+happened. Nobody knows that rate in advance, so it is a hard baseline to beat. One forecast per oblast per 5 minutes:
+
+| forecast | horizon | forecasts | happened | mean forecast | Brier | constant at the true rate | AUC | ECE |
+|:--|:--|--:|--:|--:|--:|--:|--:|--:|
+| siren start | 15m | 2799 | 9.7% | 13.1% | 0.077 | 0.088 | 0.83 | 0.040 |
+| siren start | 30m | 2741 | 18.1% | 21.2% | 0.122 | 0.148 | 0.82 | 0.036 |
+| siren start | 1h | 2626 | 31.6% | 32.3% | 0.162 | 0.216 | 0.81 | 0.023 |
+| siren start | 3h | 2202 | 59.9% | 50.1% | 0.156 | 0.240 | 0.87 | 0.098 |
+| siren start | 6h | 1751 | 80.3% | 59.1% | 0.132 | 0.158 | 0.96 | 0.213 |
+| all-clear | 15m | 1962 | 16.2% | 17.8% | 0.116 | 0.136 | 0.79 | 0.021 |
+| all-clear | 30m | 1959 | 29.5% | 28.7% | 0.164 | 0.208 | 0.79 | 0.031 |
+| all-clear | 1h | 1953 | 47.7% | 42.4% | 0.173 | 0.249 | 0.83 | 0.090 |
+| all-clear | 3h | 1929 | 74.1% | 64.6% | 0.111 | 0.192 | 0.92 | 0.111 |
+| all-clear | 6h | 1893 | 89.7% | 79.0% | 0.058 | 0.092 | 0.97 | 0.112 |
+
+The model beats the baseline at every horizon. Siren-start percentages up to 1 h and all-clear ones up to 30 min
+stayed within 3.5 points of what happened, on a day busier than the test.
+At 3 h and 6 h it said too little: sirens followed within 6 h 80% of the time while the forecast averaged 59%. The
+ranking held (AUC 0.96 at 6 h), so the error is in the level, not in which oblasts come first. My guess is the
+conservative cap, which pulls forecasts toward 50% where the calibration days had few cases, and a day this busy is
+where that costs most. It is one day, though, and a few more will say whether it is the cap or just 11 October.
+The untested model has been logged since 11 October 21:24 UTC and has nothing scored yet.
 
 ### 15-minute round (dev window, 15m horizon)
 
@@ -118,12 +154,12 @@ Kyiv city, last week (`scripts/kyiv_week.py`, `reports/kyiv_week_test.md`; featu
 | alert channel only (live) | 45 | 6 | 5 | 26 | 42 | 0.087 |
 | + @nebo_raketa | 45 | 15 | 24 | 29 | 58 | 0.095 |
 
-The channel adds little on top of the alert channel: when Kyiv oblast is already under alert, a city siren follows
-within 15 min 26% of the time after a "new drone" post vs 18% without one. Live mode keeps the alert-channel model.
+The channel adds little on top of the alert channel. When Kyiv oblast is already under alert, a city siren follows
+within 15 min 26% of the time after a "new drone" post, and 18% of the time without one. Live mode keeps the alert-channel model.
 
 ### Kyiv geography round (k1)
 
-Goal: forecasts that are usually decisive, 70%+ and right or under 30% and nothing happens. The alert channel names
+The goal was decisive forecasts, 70%+ and right or under 30% with nothing happening. The alert channel names
 the raion of every siren and the town of every threat ("🛸 Бровари"), which the general features collapse to the
 oblast. Group `kyiv` (`kyiv.py`) keeps them for Kyiv city: which of the seven Kyiv-oblast raions are under alert and
 since when, how far from Kyiv the threats named in the last 10/30/60 min are (about 80 towns with coordinates), how
@@ -140,8 +176,8 @@ to yellow/red levels. Kyiv city, 3 dev weeks pooled (`scripts/kyiv_eval.py`, `re
 The geography barely moves the 15-minute forecast and does not help at 1 h–6 h. Since June, a city siren follows
 a Kyiv-oblast raion siren within 15 min only 22% of the time (within 1 h 41%), and 27% of city sirens come less than
 5 min after the latest raion siren, so raions add little to "neighbors under alert". The
-forecast is decisive one way: under 30% (most of the time) a siren follows 7–9% of the time. 70%+ forecasts appear
-at 3 h (54%, came true 86%) and 6 h (76%, came true 91%), not at 15–60 min.
+forecast is decisive in one direction only. Under 30% (most of the time), a siren follows 7–9% of the time. 70%+
+forecasts appear at 3 h (54%, came true 86%) and 6 h (76%, came true 91%), not at 15–60 min.
 
 Those long horizons are mostly the base rate: a Kyiv siren comes within 6 h 86% of the time. A rule "how often was
 there a siren at this hour on the last 7 days" is right 86% of the time when it says yes at 6 h (model: 91%), 74% at
@@ -150,8 +186,8 @@ but the 6 h number tells a user little.
 
 ### Looking for more signal (research round)
 
-After k1 the question was whether any public source can do better. Each idea was measured against Kyiv city sirens,
-leakage-free, by agents working from the same data (scratch scripts outside the repo):
+After k1 the question was whether any public source does better. Agents measured each idea against Kyiv city sirens
+on the same leakage-free data (scratch scripts outside the repo):
 
 | idea | result |
 |:--|:--|
@@ -194,10 +230,13 @@ recalibration refits the calibrator before each test day on the 1, 3 or 7 days b
 | daily Platt, previous 7 days | 0.0576 | 0.006 | 59.5 | 0.1091 | 0.013 | 47.4 |
 | daily conservative cap, previous 1 day | 0.0613 | 0.051 | 29.5 | 0.1157 | 0.052 | 39.5 |
 
-Dropping December changes nothing (with a 60-day half-life it already weighs little), so averaging the two adds nothing. Training only from 2026-06-01 does not change it either: Brier within 1% of the final model at 15m–3h on both windows, 6h 3% better on dev and 1% worse on the final window.
-Daily Platt makes percentages more honest (calibration error 2–3x lower, Brier 3% lower at 1 h, the same ranking) but
-drops the conservative cap, so more confident forecasts are wrong: on the final window at 1 h, 5.8% of confident
-forecasts were wrong against 4.6% promised. The cap needs more than one day of cases. The live model is unchanged.
+Dropping December changes nothing (with a 60-day half-life it already weighs little), so averaging the two adds
+nothing. Training only from 2026-06-01 does not help either. Brier stays within 1% of the final model at 15m–3h on
+both windows; at 6h it is 3% better on dev and 1% worse on the final window.
+Daily Platt makes percentages more honest (calibration error 2–3x lower, Brier 3% lower at 1 h, the same ranking).
+But it drops the conservative cap, and more confident forecasts go wrong. On the final window at 1 h, 5.8% of
+confident forecasts were wrong against 4.6% promised. The cap needs more than one day of cases, so the live model
+keeps it.
 Script: `scripts/recal_eval.py`.
 
 ## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
@@ -214,13 +253,14 @@ Script: `scripts/recal_eval.py`.
 
 ¹ Round-1 settings (300 trees, Platt on 21 days); the other rows use the final settings (200 trees, Platt on 7 days).
 
-Calibration: Platt scaling on the last 7 days beat isotonic and longer windows; without calibration ECE doubles.
+Platt scaling on the last 7 days beat isotonic and longer windows. Without calibration ECE doubles.
 The final models add the last-minutes features and the conservative cap on top (sections above).
 `reports/experiments*.md` has every round.
 
-Radar channels carry real signal (alone they beat the alert channel's threat notes, 0.249 vs 0.239) but add nothing on top of
-neighbor sirens: in the last 28 days a neighbor siren preceded 94% of siren episodes, radar posts 53%, and radar was the only
-early warning in 0.6%. Separating "is there" from "is heading there" and adding counts (v2) did not change that.
+Radar channels carry real signal. Alone they beat the alert channel's threat notes (0.249 vs 0.239), but they add
+nothing on top of neighbor sirens. In the last 28 days a neighbor siren preceded 94% of siren episodes and radar posts
+53%, and radar was the only early warning in 0.6%. Separating "is there" from "is heading there" and adding counts
+(v2) did not change that.
 
 ## Run
 
@@ -239,16 +279,16 @@ uv run forecast live --host 127.0.0.1 --port 8790
 uv run forecast score-live
 ```
 
-Live mode reads only the alert channel: the final model uses no radar features. New posts are appended to
+Live mode reads only the alert channel, since the final model uses no radar features. It appends new posts to
 `data/raw/UkraineAlarmSignal.jsonl`, so the next `fit-live` trains on them. It also records `@raketa_trevoga` and
-`@nebo_raketa` (Kyiv-region radar) for later experiments. Yellow and red alert levels count as one air alert:
-an oblast is under alert from its first siren until the all-clear.
+`@nebo_raketa` (Kyiv-region radar) for later experiments. Yellow and red alert levels count as one air alert. An
+oblast is under alert from its first siren until the all-clear.
 
-Server: `Dockerfile` + `deploy/docker-compose.yml` (restart `unless-stopped`; `data/`, `.env` and the Telegram
-session are mounted, so a redeploy keeps the collected posts and the prediction log).
-`deploy/airalerts-refit.timer` refits the live model every day at 05:00 Kyiv time (train on all data but the last 7
-days, calibrate on those); live mode picks up the new model without a restart. On the last 3 days of data, a model
-calibrated on the 7 days right before them beat one 21 days older at 1 h (Brier 0.148 vs 0.152) and 3 h (0.133 vs
-0.145), and was confidently wrong less often; at 15 min they were equal.
-The page also has a model toggle: "untested" is fitted on all data up to the last post, with no calibration hold-out
-(raw LightGBM probabilities) and no test; the page says so. The refit container peaks at about 5.3 GB.
+The server runs `Dockerfile` with `deploy/docker-compose.yml` (restart `unless-stopped`). `data/`, `.env` and the
+Telegram session are mounted, so a redeploy keeps the collected posts and the prediction log.
+`deploy/airalerts-refit.timer` refits the live model every day at 05:00 Kyiv time. It trains on all data but the last
+7 days and calibrates on those, and live mode picks up the new model without a restart. On the last 3 days of data, a
+model calibrated on the 7 days right before them beat one 21 days older at 1 h (Brier 0.148 vs 0.152) and 3 h (0.133
+vs 0.145), and was confidently wrong less often. At 15 min they were equal.
+The page also has a model toggle. "Untested" is fitted on all data up to the last post, with no calibration hold-out
+(raw LightGBM probabilities) and no test, and the page says so. The refit container peaks at about 5.3 GB.
