@@ -200,6 +200,8 @@ def build_table(
     keep_active: bool = False,
     step: pd.Timedelta = STEP,
     nebo: pd.DataFrame | None = None,
+    corridor: pd.DataFrame | None = None,
+    carrier: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """Feature + label table on a grid of `step` (default 15 minutes) in [start, end). Labels need data up to end + 6h.
 
@@ -210,12 +212,25 @@ def build_table(
 
     `radar` (optional): output of `radar.to_events` (rows per post, role and oblast, with weights). Role "heading_to" is where an object is going but not yet: the direction signal that
     neighbor sirens don't carry.
+
+    `corridor` / `carrier` (optional): outputs of `radar_text.corridor_events` / `carrier_events` — town-level text
+    tracks around the city rings and missile-carrier posts; applied to the Kyiv city and oblast rows only.
     """
     if grid is None:
         grid = pd.date_range(start.ceil(step), end, freq=step, inclusive="left", tz="UTC", unit="ns")
     t = grid.asi8
     intervals = alert_intervals(events)
     active = {r: is_active(intervals[r], t) for r in REGIONS}
+
+    # Per-region stream of the region's own alert posts with a kind code (start=1, end=2, threat=3), for the
+    # order features: what the last two posts were and how far apart they came, not just how many.
+    own_streams = {}
+    for r in REGIONS:
+        sel = events[events["oblast"] == r]
+        order = np.argsort(sel["ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64), kind="stable")
+        ts_ = sel["ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64)[order]
+        codes = sel["kind"].map({"start": 1, "end": 2, "threat": 3}).fillna(0).to_numpy(np.int64)[order]
+        own_streams[r] = (ts_, codes)
 
     def times(mask: pd.Series) -> np.ndarray:
         return np.sort(events.loc[mask, "ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64))
@@ -265,6 +280,19 @@ def build_table(
 
     ky = kyiv_features(events, t)
     ky_blank = kyiv_features_blank(ky)
+
+    # Text-channel tracks around Kyiv: computed once, applied on the Kyiv city + oblast rows, blanked elsewhere.
+    track = None
+    if corridor is not None or carrier is not None:
+        from .radar_text import REGIONS as TRACK_REGIONS, blank_features, carrier_features, corridor_features
+
+        track = (
+            TRACK_REGIONS,
+            corridor_features(corridor, t) if corridor is not None else {},
+            blank_features(corridor_features(corridor, t), t) if corridor is not None else {},
+            carrier_features(carrier, t) if carrier is not None else {},
+            blank_features(carrier_features(carrier, t), t) if carrier is not None else {},
+        )
 
     kyiv_time = grid.tz_convert("Europe/Kyiv")
     frames = []
@@ -317,7 +345,30 @@ def build_table(
         f["rc_national_ends_10m"] = count_before(all_ends, t, RECENT)
         f["rc_nb_newly_active_15m"] = np.sum([active[n] & ~active_15m_ago[n] for n in nb], axis=0) if nb else 0
         f["rc_national_active_change_15m"] = national_active - np.sum([active_15m_ago[n] for n in REGIONS], axis=0)
+        # Order, not just counts: the region's own last two posts (kinds and the minutes between them).
+        own_ts, own_codes = own_streams[r]
+        if len(own_ts):
+            i = np.searchsorted(own_ts, t, side="left") - 1
+            safe_i, safe_j = np.maximum(i, 0), np.maximum(i - 1, 0)
+            last_c = np.where(i >= 0, own_codes[safe_i], 0)
+            prev_c = np.where(i >= 1, own_codes[safe_j], 0)
+            gap = np.minimum(np.where(i >= 1, (own_ts[safe_i] - own_ts[safe_j]) / 6e10, 999.0), 999.0)
+        else:
+            last_c = prev_c = np.zeros(len(t), dtype=np.int64)
+            gap = np.full(len(t), 999.0)
+        f["sq_last_kind"] = last_c
+        f["sq_prev_kind"] = prev_c
+        f["sq_pair"] = last_c * 4 + prev_c  # the pair as one numeric, so LightGBM can split on the combination
+        f["sq_gap_min"] = gap
         f.update(ky if r == KYIV_CITY else ky_blank)
+        if track is not None:
+            regions, co_f, co_blank, ca_f, ca_blank = track
+            if r in regions:
+                f.update(co_f if corridor is not None else {})
+                f.update(ca_f if carrier is not None else {})
+            else:
+                f.update(co_blank if corridor is not None else {})
+                f.update(ca_blank if carrier is not None else {})
         if nebo is not None:
             kyiv = r in NEBO_REGIONS
             for g, ts_ in nebo_times.items():
@@ -393,4 +444,7 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "nebo": [c for c in cols if c.startswith("neb_")],
         "kyiv": [c for c in cols if c.startswith("ky_")],
         "regime": ["reform"],
+        "corridor": [c for c in cols if c.startswith("co_")],  # radar_text: town-level tracks around Kyiv
+        "carrier": [c for c in cols if c.startswith("ca_")],  # radar_text: missile-carrier posts + stated arrivals
+        "seq": [c for c in cols if c.startswith("sq_")],  # order of the region's own last posts
     }

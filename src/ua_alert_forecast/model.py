@@ -56,6 +56,7 @@ class Config:
     train_since: str | None = None  # drop training rows before this date (a regime change, e.g. the 2026-09 alert reform)
     half_life_days: float = HALF_LIFE_DAYS  # sample weight halves every this many days back
     regions: tuple[str, ...] | None = None  # train and calibrate on these regions only (e.g. ("kyiv",))
+    stage: Literal["single", "wave2"] = "single"  # wave2: gate P(siren within 3h) times intra-wave hazard P(siren in h | 3h)
 
 
 def label(target: Target, horizon: Horizon) -> str:
@@ -185,6 +186,24 @@ class HorizonModel:
 
 
 @dataclass
+class WaveGateModel:
+    """Two-stage decomposition P(siren in (T, T+h]) = P(siren in (T, T+3h]) * P(siren in h | siren in 3h).
+
+    A wave starting in the next hours is a coarser, easier call than the minute-scale hazard inside one; splitting
+    them lets each stage sharpen its own end: the gate at "will this quiet stretch break at all", the hazard at
+    "the wave is coming, when does the city siren fire". Exact identity because a siren within h is a siren within 3h.
+    """
+
+    horizon: Horizon
+    features: list[str]
+    gate: HorizonModel  # label y_3h
+    hazard: HorizonModel  # label y_h on rows where the wave is coming (train/calib) — no wave label needed at forecast time
+
+    def predict(self, rows: pd.DataFrame) -> np.ndarray:
+        return self.gate.predict(rows) * self.hazard.predict(rows)
+
+
+@dataclass
 class Ensemble:
     members: list[HorizonModel]
 
@@ -201,11 +220,20 @@ def make_classifier(config: Config, features: list[str]):
     return make_pipeline(columns, LogisticRegression(max_iter=2000))
 
 
-def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> HorizonModel | Ensemble:
-    if config.members:
-        return Ensemble([fit(table, horizon, split, m) for m in config.members])
-    parts = split.periods(table, horizon, config.target)
-    train, calib, y = parts["train"], parts["calib"], label(config.target, horizon)
+def fit_one(config: Config, features: list[str], train: pd.DataFrame, calib: pd.DataFrame, y: str, train_end: pd.Timestamp):
+    """Classifier + calibrator for one label column, with the config's recency weights and calibration."""
+    weights = 0.5 ** ((train_end - train["ts"]).dt.total_seconds() / 86400 / config.half_life_days)
+    clf = make_classifier(config, features)
+    step = "lgbmclassifier__" if config.family == "lgbm" else "logisticregression__"
+    clf.fit(train[features], train[y], **({"sample_weight": weights} if config.family == "lgbm" else {f"{step}sample_weight": weights}))
+    calibrator = fit_calibrator(config.calibration, clf.predict_proba(calib[features])[:, 1], calib[y].to_numpy(), config.bound_z)
+    return clf, calibrator
+
+
+def _periods_for(split: Split, table: pd.DataFrame, purge: Horizon, config: Config) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Train/calib rows purged by the label window `purge`; apply the config's grid, date and region filters."""
+    parts = split.periods(table, purge, "start")
+    train, calib = parts["train"], parts["calib"]
     if config.train_grid_minutes:
         on_grid = lambda df: df[df["ts"].dt.minute % config.train_grid_minutes == 0]  # noqa: E731
         train, calib = on_grid(train), on_grid(calib)
@@ -213,13 +241,31 @@ def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> 
         train = train[train["ts"] >= pd.Timestamp(config.train_since, tz="UTC")]
     if config.regions:
         train, calib = train[train["region"].isin(config.regions)], calib[calib["region"].isin(config.regions)]
+    return train, calib
+
+
+def two_stage_fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> WaveGateModel:
+    """Gate on the 3h wave label (purged by it), hazard on rows inside a coming wave."""
     groups = feature_groups(table.columns)
     features = [c for g in config.groups for c in groups[g]]
-    weights = 0.5 ** ((split.train_end - train["ts"]).dt.total_seconds() / 86400 / config.half_life_days)
-    clf = make_classifier(config, features)
-    step = "lgbmclassifier__" if config.family == "lgbm" else "logisticregression__"
-    clf.fit(train[features], train[y], **({"sample_weight": weights} if config.family == "lgbm" else {f"{step}sample_weight": weights}))
-    calibrator = fit_calibrator(config.calibration, clf.predict_proba(calib[features])[:, 1], calib[y].to_numpy(), config.bound_z)
+    train, calib = _periods_for(split, table, "3h", config)
+    gate_c, gate_cal = fit_one(config, features, train, calib, label("start", "3h"), split.train_end)
+    in_wave, calib_wave = train[train[label("start", "3h")] == 1], calib[calib[label("start", "3h")] == 1]
+    haz_c, haz_cal = fit_one(config, features, in_wave, calib_wave, label("start", horizon), split.train_end)
+    gate = HorizonModel("3h", features, gate_c, gate_cal)
+    hazard = HorizonModel(horizon, features, haz_c, haz_cal)
+    return WaveGateModel(horizon, features, gate, hazard)
+
+
+def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> HorizonModel | Ensemble | WaveGateModel:
+    if config.stage == "wave2":
+        return two_stage_fit(table, horizon, split, config)
+    if config.members:
+        return Ensemble([fit(table, horizon, split, m) for m in config.members])
+    parts = split.periods(table, horizon, config.target)
+    groups = feature_groups(table.columns)
+    features = [c for g in config.groups for c in groups[g]]
+    clf, calibrator = fit_one(config, features, parts["train"], parts["calib"], label(config.target, horizon), split.train_end)
     return HorizonModel(horizon, features, clf, calibrator)
 
 

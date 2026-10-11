@@ -103,6 +103,26 @@ CONFIGS = [
             ("kyiv_nebo", ("kyiv", "regime", "nebo"), {}),
         ]
     ],
+    # Round k2 (two-stage wave, scored on Kyiv city by scripts/kyiv_events.py): the gate answers "will a wave
+    # reach the city within 3h", the hazard answers "inside a coming wave, does the city siren fire within h".
+    # Only 15m/30m/1h: for the 3h horizon the gate IS the answer (identity), so the split is degenerate there.
+    *[
+        Config(f"k2_{name}", groups=groups, lgbm=SMALL, calib_days=7, step_minutes=5, stage="wave2")
+        for name, groups in [
+            ("base", FULL + ("wave",)),
+            ("kyiv", FULL + ("wave", "recent", "kyiv", "regime")),
+        ]
+    ],
+    # Round k3-k6 (text channels beyond the alert feed, scored on Kyiv city by scripts/kyiv_events.py):
+    # "corridor" = town-level tracks and Kyiv-distance rings (kpszsu/deraketaua/war_monitor/nebo_raketa text),
+    # "carrier" = missile-carrier posts (Tu-95/Tu-160/MiG-31K) with stated arrival times, "seq" = order features.
+    Config("k3_corridor", groups=FULL + ("wave", "recent", "kyiv", "regime", "corridor"), lgbm=SMALL, calib_days=7, step_minutes=5),
+    Config("k4_carrier", groups=FULL + ("wave", "recent", "kyiv", "regime", "carrier"), lgbm=SMALL, calib_days=7, step_minutes=5),
+    Config("k5_text_both", groups=FULL + ("wave", "recent", "kyiv", "regime", "corridor", "carrier"), lgbm=SMALL, calib_days=7, step_minutes=5),
+    Config("k6_all_text", groups=FULL + ("wave", "recent", "kyiv", "regime", "corridor", "carrier", "nebo"), lgbm=SMALL, calib_days=7, step_minutes=5),
+    # Same as k6 but built from @nebo_raketa text only (the one text channel collected live).
+    Config("k7_text_nebo_only", groups=FULL + ("wave", "recent", "kyiv", "regime", "corridor", "carrier", "nebo"), lgbm=SMALL, calib_days=7, step_minutes=5),
+    Config("k8_seq", groups=FULL + ("wave", "recent", "kyiv", "regime", "seq"), lgbm=SMALL, calib_days=7, step_minutes=5),
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 

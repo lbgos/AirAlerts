@@ -19,13 +19,16 @@ separately as `unforecastable` and left out of the recall denominator.
 import numpy as np
 import pandas as pd
 
-NS_PER_MIN = 6e10
+NS_PER_MIN = 6e10  # ns; used as float for unit math, cast to int where it enters array ops
 STATES = ((0.0, 0.05, "no"), (0.05, 0.3, "probably_no"), (0.3, 0.7, "probably_yes"), (0.7, 1.01, "yes"))
 STATE_NAMES = [s[2] for s in STATES]
+GRID_MINUTES = 5
+STEP_NS = GRID_MINUTES * 60_000_000_000
 
 
 def bucket(times: np.ndarray, step_ns: int = 5 * NS_PER_MIN) -> np.ndarray:
     """Event times floored to the forecast grid (ns), so sirens in one grid slot count once."""
+    step_ns = int(step_ns)
     return np.unique(times // step_ns * step_ns)
 
 
@@ -62,7 +65,11 @@ def stretch_stats(p: np.ndarray, tsv: np.ndarray, sirens: np.ndarray, horizon_ns
 
 def unforecastable_mask(sirens: np.ndarray, tsv: np.ndarray, horizon_ns: int) -> np.ndarray:
     """Mask over `sirens`: True where no forecast row exists in the horizon before the siren."""
-    return np.array([np.searchsorted(tsv, s - horizon_ns, side="left") >= np.searchsorted(tsv, s, side="left") for s in sirens])
+    if not len(sirens):
+        return np.zeros(0, dtype=bool)
+    lo = np.searchsorted(tsv, sirens - horizon_ns, side="left")
+    hi = np.searchsorted(tsv, sirens, side="left")
+    return lo >= hi
 
 
 def state_stats(y: np.ndarray, p: np.ndarray) -> dict:
@@ -80,7 +87,8 @@ def event_report(p: np.ndarray, tsv: np.ndarray, y: np.ndarray, sirens: np.ndarr
                  days: float | None = None) -> pd.DataFrame:
     """Threshold sweep (one row per threshold) plus the four-state block, for one pooled forecast set.
 
-    `days`: window length for false alarms per night (default: the span of the forecasts).
+    `tsv` and `sirens` must be ascending (sort the pooled weeks); `days`: window length for false alarms per
+    night (default: the span of the forecasts).
     """
     catchable = sirens[~unforecastable_mask(sirens, tsv, horizon_ns)]
     rows = []

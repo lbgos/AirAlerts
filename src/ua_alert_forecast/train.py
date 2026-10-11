@@ -21,7 +21,14 @@ RADAR_LABELS = ROOT / "labels" / "radar_v2"
 STUDENT_DAYS_BEFORE_END = 28
 
 
-def load_table(with_radar: bool = True, step: pd.Timedelta = STEP, with_nebo: bool = False) -> pd.DataFrame:
+def load_table(
+    with_radar: bool = True,
+    step: pd.Timedelta = STEP,
+    with_nebo: bool = False,
+    corridor: bool = False,
+    carrier: bool = False,
+    text_channels: list[str] | None = None,
+) -> pd.DataFrame:
     events = load_events(RAW_DIR / f"{LABEL_CHANNEL}.jsonl")
     end = events["ts"].max()
     radar = None
@@ -31,7 +38,14 @@ def load_table(with_radar: bool = True, step: pd.Timedelta = STEP, with_nebo: bo
     start = max(events["ts"].min(), pd.Timestamp(HISTORY_START)) + pd.Timedelta(hours=24)
     # Rows under alert are kept (all-clear models); start models filter them out in Split.periods.
     nebo = load_nebo(RAW_DIR / f"{NEBO_CHANNEL}.jsonl") if with_nebo else None
-    return build_table(events, start, end, radar=radar, keep_active=True, step=step, nebo=nebo)
+    co = ca = None
+    if corridor or carrier:  # text-channel tracks; `text_channels` narrows them (e.g. @nebo_raketa only)
+        from .radar_text import CHANNELS as TEXT_CHANNELS, carrier_events, corridor_events, load_posts
+
+        posts = load_posts(RAW_DIR, text_channels or TEXT_CHANNELS)
+        co = corridor_events(posts) if corridor else None
+        ca = carrier_events(posts) if carrier else None
+    return build_table(events, start, end, radar=radar, keep_active=True, step=step, nebo=nebo, corridor=co, carrier=ca)
 
 
 def train(config: Config) -> None:
