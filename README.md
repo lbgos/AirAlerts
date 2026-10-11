@@ -7,8 +7,7 @@ For each Ukrainian oblast, forecasts within the next 15 min / 30 min / 1 h / 3 h
 
 Calibrated: a forecast of 70% should come true about 70% of the time.
 
-Live: **https://alerts.lbgos.dev** · AI conversation log:
-[files.lbgos.dev](https://files.lbgos.dev/f/498a7bfba84a976e8a3679b01fef5f22/airalerts-ai-log-49164c7d.html)
+Live: **https://alerts.lbgos.dev**
 
 In short: the forecast is reliable about calm and about rising risk, and says so when it is unsure. On the final test
 (last 14 days), 15-minute forecasts under 10% were followed by a siren 1% of the time, and forecasts of 30% or more came
