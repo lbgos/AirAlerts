@@ -145,7 +145,8 @@ leakage-free, by agents working from the same data (scratch scripts outside the 
 | radar-channel positions as distance to Kyiv (kpszsu, deraketaua, nebo) | a drone named within 20 km while the oblast is alerted: city siren within 15 min 29% of the time; 44% of city sirens have under 10 min of any notice |
 | early launch reports (war_monitor launch/take-off posts) | precede 18% of city sirens 30 min–6 h ahead; random times: 19% |
 | bomber / MiG-31K take-off posts | real lead (median ~1 h) but 6–10% of city sirens at most; no model gain |
-| Rassvet satellite passes, weather, moon, day of week, strike cadence | no usable effect (massive nights come about every 4–5 days, close to random) |
+| Rassvet LEO satellite passes (all 31 active, CelesTrak elements, two planes launched 2026-03-23 and 07-19) | no effect: pass windows drift through all 24 h, so time of day can be separated; Kyiv and national siren starts, wave onsets and before/after-launch rates match the same-hour baseline (national: rate ratios 0.95–1.00, all CIs include 1; the few p < 0.05 hits among ~100 uncorrected tests point both ways); pass windows hold 4% of time and 4% of sirens; no forecast gain at equal alarm time |
+| weather, moon, day of week, strike cadence | no usable effect (massive nights come about every 4–5 days, close to random) |
 | two-stage model (wave, then siren within it), town-level radar tracks, event order features | no gain at equal alarm time (below) |
 | GPS jamming maps, internet outages (IODA), Russian airport closures, NOTAMs | null or wrong direction (outages precede 4.7% of sirens, chance 5%) |
 | 10 more public monitor channels (t.me/s previews, last 1–2 weeks) | each adds coverage only by adding alarm time (below) |
