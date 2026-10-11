@@ -48,9 +48,10 @@ def events_from_posts(posts: Iterable[dict]) -> pd.DataFrame:
 
 
 def load_events(path: Path) -> pd.DataFrame:
-    """Parse a raw channel dump (data/raw/<channel>.jsonl) into a sorted event table."""
+    """Parse a raw channel dump (data/raw/<channel>.jsonl) into a sorted event table.
+    Skips a trailing line without a newline: live mode may be appending to the file while a refit reads it."""
     with path.open() as f:
-        return events_from_posts(json.loads(line) for line in f)
+        return events_from_posts(json.loads(line) for line in f if line.endswith("\n"))
 
 
 def alert_intervals(events: pd.DataFrame, by_place: bool = False) -> dict:

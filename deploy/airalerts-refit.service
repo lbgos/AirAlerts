@@ -1,0 +1,12 @@
+# Daily refit of the live model (see airalerts-refit.timer). Runs `forecast fit-live` in a one-off container next to the
+# live service, with more memory than the live container; live mode reloads data/live_model.pkl when it changes.
+# Install: copy both units to /etc/systemd/system/, then `systemctl daemon-reload && systemctl enable --now airalerts-refit.timer`.
+[Unit]
+Description=AirAlerts: refit the live model on the latest data
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker run --rm --name airalerts-refit --memory 5g --cpus 1.5 \
+  -v /opt/services/airalerts/data:/app/data airalerts-airalerts uv run --no-sync forecast fit-live

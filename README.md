@@ -243,3 +243,7 @@ an oblast is under alert from its first siren until the all-clear.
 
 Server: `Dockerfile` + `deploy/docker-compose.yml` (restart `unless-stopped`; `data/`, `.env` and the Telegram
 session are mounted, so a redeploy keeps the collected posts and the prediction log).
+`deploy/airalerts-refit.timer` refits the live model every day at 05:00 Kyiv time (train on all data but the last 7
+days, calibrate on those); live mode picks up the new model without a restart. On the last 3 days of data, a model
+calibrated on the 7 days right before them beat one 21 days older at 1 h (Brier 0.148 vs 0.152) and 3 h (0.133 vs
+0.145), and was confidently wrong less often; at 15 min they were equal.

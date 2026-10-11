@@ -72,5 +72,7 @@ def fit_live(config: Config, clear_config: Config) -> None:
         return {h: fit(table, h, split, c) for h in HORIZONS}
 
     bundle = {"config": config, "models": fit_all(config), "clear_config": clear_config, "clear_models": fit_all(clear_config), "data_end": end}
-    LIVE_MODEL_PATH.write_bytes(pickle.dumps(bundle))
+    tmp = LIVE_MODEL_PATH.with_suffix(".tmp")  # write then rename, so a running live mode never reads half a file
+    tmp.write_bytes(pickle.dumps(bundle))
+    tmp.replace(LIVE_MODEL_PATH)
     print(f"{config.name} + {clear_config.name}: fitted on data until {end:%Y-%m-%d %H:%M} UTC -> {LIVE_MODEL_PATH}")

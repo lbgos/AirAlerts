@@ -1,0 +1,10 @@
+# Refit every day at 05:00 Kyiv time: tactics drift, and a model calibrated on the last 7 days beat one 21 days older.
+[Unit]
+Description=AirAlerts: daily live-model refit at 05:00 Kyiv
+
+[Timer]
+OnCalendar=*-*-* 05:00:00 Europe/Kyiv
+Persistent=true
+
+[Install]
+WantedBy=timers.target

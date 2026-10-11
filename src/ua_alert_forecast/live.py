@@ -109,7 +109,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 async def run(host: str, port: int) -> None:
-    bundle = pickle.loads(LIVE_MODEL_PATH.read_bytes())
+    bundle, model_mtime = pickle.loads(LIVE_MODEL_PATH.read_bytes()), LIVE_MODEL_PATH.stat().st_mtime
     STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
     server = ThreadingHTTPServer((host, port), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -125,6 +125,9 @@ async def run(host: str, port: int) -> None:
     collect_ids = {ch: last_saved_id(RAW_DIR / f"{ch}.jsonl") for ch in COLLECT_CHANNELS}
     while True:
         try:
+            if LIVE_MODEL_PATH.stat().st_mtime != model_mtime:  # `forecast fit-live` wrote a newer model (daily refit)
+                bundle, model_mtime = pickle.loads(LIVE_MODEL_PATH.read_bytes()), LIVE_MODEL_PATH.stat().st_mtime
+                print(f"reloaded model, data until {bundle['data_end']:%Y-%m-%d %H:%M} UTC", flush=True)
             for ch in COLLECT_CHANNELS:
                 got = await fetch_new(client, RAW_DIR / f"{ch}.jsonl", collect_ids[ch], ch)
                 collect_ids[ch] = got[-1]["id"] if got else collect_ids[ch]
