@@ -47,11 +47,12 @@ def test_carrier_eta_local_time_and_rollover():
         "ts": [T("2026-02-16T23:06:00Z"), T("2026-01-20T01:50:00Z"), T("2026-04-24T19:52:00Z")],
         "text": ["✈️3 Ту-95мс з аеродрому Оленья, курс на пускові рубежі. Підліт до пускових рубежів 4:30",
                  "✈ Виліт Ту-95МС з Оленьї! Можливі пуски крилатих ракет повітряного базування ближче до 6.00!",
-                 "…Прибуття в потенційну зону пуску крилатих ракет Х-101: Вологодська зона 0:00"],
+                 "✈️В повітрі наразі 3 борти Ту-95мс | ❗️Прибуття в потенційну зону пуску крилатих ракет Х-101: "
+                 "Вологодська зона 0:00"],
     })
-    ca = carrier_events(posts)
-    assert ca.kind.iloc[0] == "tu" and ca.eta.iloc[0] == L("2026-02-17 04:30")
-    assert ca.eta.iloc[1] == L("2026-01-20 06:00")
+    ca = carrier_events(posts)  # sorted by ts: Jan 20, Feb 16, Apr 24
+    assert ca.kind.iloc[0] == "tu" and ca.eta.iloc[0] == L("2026-01-20 06:00")
+    assert ca.eta.iloc[1] == L("2026-02-17 04:30")
     assert ca.eta.iloc[2] == L("2026-04-24 00:00") + 24 * 3600 * 10**9  # 00:00 already passed -> next morning
 
 
@@ -91,7 +92,7 @@ def test_build_table_wires_corridor_only_for_kyiv_regions():
                            "place": pd.Series([], dtype="object")})
     co = pd.DataFrame({"ts": [T("2026-02-16T23:00:00Z")], "dist": [30.0], "towns": [1], "weapon": ["drone"]})
     table = build_table(events, pd.Timestamp("2026-02-16T20:00Z"), pd.Timestamp("2026-02-17T02:00Z"),
-                        corridor=co, keep_active=True)
+                        corridor=co, keep_active=True, step=pd.Timedelta(minutes=5))
     one = table[(table.region == "kyiv") & (table.ts == pd.Timestamp("2026-02-16T23:10:00Z", tz="UTC"))].iloc[0]
     other = table[(table.region == "vinnytska") & (table.ts == pd.Timestamp("2026-02-16T23:10:00Z", tz="UTC"))].iloc[0]
     assert one["co_min_dist_15m"] == 30.0 and other["co_min_dist_15m"] == DIST_CAP
