@@ -21,7 +21,7 @@ import pandas as pd
 
 from ua_alert_forecast.config import RAW_DIR
 from ua_alert_forecast.dataset import HORIZONS, alert_intervals, count_before, is_active, load_events, minutes_since
-from ua_alert_forecast.events import event_report, state_stats
+from ua_alert_forecast.events import bucket, event_report, state_stats
 from ua_alert_forecast.geo import NEIGHBORS
 from ua_alert_forecast.radar_text import CHANNELS, corridor_events, load_posts
 
@@ -64,7 +64,7 @@ def main() -> None:
             quiet_cor = count_before(near, tsv, pd.Timedelta(minutes=60)) == 0
             arms = {"none": np.ones(len(tsv), bool), "ko": ko_clear, "quiet": ko_clear & quiet_nb & quiet_cor}
             for arm, mask in arms.items():
-                p2 = np.where(mask, np.minimum(p, args.cap), p)
+                p2 = np.where(mask & (arm != "none"), np.minimum(p, args.cap), p)
                 sw = event_report(p2, tsv, y, siren_set, h_ns, tuple(args.thresholds), 5 * 6e10, 7 * (3 if args.window == "dev" else 1))
                 rows.append(pd.DataFrame({"config": name, "horizon": h, "guard": arm, **sw}))
             print(name, h, "guarded share:", float((arms["quiet"]).mean()), flush=True)
