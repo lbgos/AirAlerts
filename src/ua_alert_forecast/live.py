@@ -54,6 +54,10 @@ def forecast(bundle: dict, posts: list[dict], now: pd.Timestamp) -> dict:
     table = build_table(events, now, now, grid=grid, keep_active=True)
     start = {h: bundle["models"][h].predict(table) for h in HORIZONS}
     clear = {h: bundle["clear_models"][h].predict(table) for h in HORIZONS}
+    untested = "untested_models" in bundle  # bundles fitted before the toggle existed have only the tested pair
+    if untested:
+        ustart = {h: bundle["untested_models"][h].predict(table) for h in HORIZONS}
+        uclear = {h: bundle["untested_clear_models"][h].predict(table) for h in HORIZONS}
     regions = [
         {
             "id": row.region,
@@ -62,6 +66,9 @@ def forecast(bundle: dict, posts: list[dict], now: pd.Timestamp) -> dict:
             # p: siren starts within h (regions not under alert); pc: all-clear within h (regions under alert)
             "p": {h: round(float(start[h][i]), 4) for h in HORIZONS},
             "pc": {h: round(float(clear[h][i]), 4) for h in HORIZONS},
+            # pu / pcu: the same from the untested models (page toggle)
+            **({"pu": {h: round(float(ustart[h][i]), 4) for h in HORIZONS},
+                "pcu": {h: round(float(uclear[h][i]), 4) for h in HORIZONS}} if untested else {}),
         }
         for i, row in enumerate(table.itertuples())
     ]
@@ -81,7 +88,8 @@ def write_state(state: dict) -> None:
     tmp.replace(STATE_PATH)  # atomic: the page never reads a half-written file
     # The forecast relevant to each region's state: start chances if clear, all-clear chances if under alert.
     log = {"t": state["generated_at"], "model": state["model"], "clear_model": state["clear_model"],
-           "regions": {r["id"]: {"active": r["active"], "p": r["pc"] if r["active"] else r["p"]} for r in state["regions"]}}
+           "regions": {r["id"]: {"active": r["active"], "p": r["pc"] if r["active"] else r["p"],
+                                 **({"pu": r["pcu"] if r["active"] else r["pu"]} if "pu" in r else {})} for r in state["regions"]}}
     with PREDICTION_LOG.open("a") as f:
         f.write(json.dumps(log) + "\n")
 

@@ -1,5 +1,6 @@
 """`forecast train`: fit one config on all data before the final test window, evaluate on it, save models + report."""
 
+import dataclasses
 import pickle
 
 import pandas as pd
@@ -61,17 +62,21 @@ def train(config: Config) -> None:
 def fit_live(config: Config, clear_config: Config) -> None:
     """Refit the start and all-clear configs on all data for live use: train on everything but the last calib_days,
     calibrate on those. The final-test models leave out the latest 14 days; tactics drift, so live uses them too.
+    Also fits an "untested" pair for the page's model toggle: trained on everything up to the last post, no calibration
+    hold-out, raw LightGBM probabilities. Nothing measures it; the page says so.
     """
     if any(g in c.groups for c in (config, clear_config) for g in ("radar", "clear_radar")):
         raise SystemExit("live mode reads only the alert channel; pick configs without radar groups")
     table = load_table(with_radar=False, step=pd.Timedelta(minutes=min(config.step_minutes, clear_config.step_minutes)))
     end = table["ts"].max()
 
-    def fit_all(c: Config) -> dict:
-        split = Split.ending(end, test_days=0, calib_days=c.calib_days)
+    def fit_all(c: Config, untested: bool = False) -> dict:
+        split = Split(end, end, end) if untested else Split.ending(end, test_days=0, calib_days=c.calib_days)
+        c = dataclasses.replace(c, calibration="none") if untested else c
         return {h: fit(table, h, split, c) for h in HORIZONS}
 
-    bundle = {"config": config, "models": fit_all(config), "clear_config": clear_config, "clear_models": fit_all(clear_config), "data_end": end}
+    bundle = {"config": config, "models": fit_all(config), "clear_config": clear_config, "clear_models": fit_all(clear_config),
+              "untested_models": fit_all(config, True), "untested_clear_models": fit_all(clear_config, True), "data_end": end}
     tmp = LIVE_MODEL_PATH.with_suffix(".tmp")  # write then rename, so a running live mode never reads half a file
     tmp.write_bytes(pickle.dumps(bundle))
     tmp.replace(LIVE_MODEL_PATH)

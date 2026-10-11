@@ -74,6 +74,7 @@
 <p class="asof" id="asof"></p>
 <div class="controls">
   <select id="horizon" aria-label="horizon"></select>
+  <select id="variant" aria-label="model" hidden></select>
   <span class="what" id="what"></span>
 </div>
 <svg id="map" role="img"></svg>
@@ -106,6 +107,8 @@ const T = {
     h: { "15m": "15 хв", "30m": "30 хв", "1h": "1 год", "3h": "3 год", "6h": "6 год" }, within: "за",
     theme: { auto: "тема: авто", dark: "тема: темна", light: "тема: світла" },
     alert: "тривога", alertNow: "тривога зараз", nodata: "окуповано", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
+    variants: { tested: "перевірена модель", untested: "неперевірена модель" },
+    untestedNote: "Неперевірена модель: навчена на всіх даних до останнього поста, без калібрування і без перевірки. Її відсотки можуть бути завищені або занижені.",
     stale: "дані застаріли", model: "модель", trained: "навчена до", tap: "Торкніться області на мапі або в списку.",
     note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени. Мапа: geoBoundaries, © OpenStreetMap. Зроблено на Python: LightGBM, scikit-learn, pandas, NumPy, Telethon.",
   },
@@ -116,6 +119,8 @@ const T = {
     h: { "15m": "15 min", "30m": "30 min", "1h": "1 hour", "3h": "3 hours", "6h": "6 hours" }, within: "within",
     theme: { auto: "theme: auto", dark: "theme: dark", light: "theme: light" },
     alert: "alert", alertNow: "alert now", nodata: "occupied", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
+    variants: { tested: "tested model", untested: "untested model" },
+    untestedNote: "Untested model: trained on all data up to the last post, with no calibration and no test. Its percentages may run high or low.",
     stale: "data is stale", model: "model", trained: "trained until", tap: "Tap an oblast on the map or in the list.",
     note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens. Map: geoBoundaries, © OpenStreetMap. Built with Python: LightGBM, scikit-learn, pandas, NumPy, Telethon.",
   },
@@ -138,6 +143,10 @@ const INSET = { x: 40, y: 500, size: 120 };
 
 let lang = localStorage.getItem("lang") || "uk";
 let horizon = localStorage.getItem("horizon") || "15m";
+let variant = localStorage.getItem("variant") || "tested";
+// Start / all-clear chances of the chosen model; state.json has pu / pcu only once an untested model is fitted.
+const P = (r) => (variant === "untested" && r.pu ? r.pu : r.p);
+const PC = (r) => (variant === "untested" && r.pcu ? r.pcu : r.pc);
 let theme = themePref;
 let state = null, geo = null, selected = null;
 
@@ -181,7 +190,7 @@ function renderMap(byId, t) {
   if (!geo) return;
   const svg = $("map");
   svg.setAttribute("viewBox", geo.viewBox);
-  const value = (r) => (r.active ? r.pc[horizon] : r.p[horizon]);
+  const value = (r) => (r.active ? PC(r)[horizon] : P(r)[horizon]);
   const fillOf = (r) => (r.active ? clearColor(value(r)) : color(value(r)));
   const labelOf = (r, x, y, size) => `<text x="${x}" y="${y}" font-size="${size}" fill="${ink(fillOf(r))}">${pct(value(r))}</text>`;
   let out = "";
@@ -217,7 +226,10 @@ function render() {
   $("clearKey").textContent = t.clearKey;
   $("horizon").innerHTML = Object.entries(t.h)
     .map(([k, v]) => `<option value="${k}"${k === horizon ? " selected" : ""}>${v}</option>`).join("");
+  $("variant").innerHTML = Object.entries(t.variants)
+    .map(([k, v]) => `<option value="${k}"${k === variant ? " selected" : ""}>${v}</option>`).join("");
   if (!state) return;
+  $("variant").hidden = !state.regions.some((r) => r.pu);
 
   const regions = state.regions.filter((r) => !NO_DATA.has(r.id));
   const byId = Object.fromEntries(regions.map((r) => [r.id, r]));
@@ -225,18 +237,18 @@ function render() {
 
   const s = selected && byId[selected];
   $("caption").innerHTML = s
-    ? `<b>${name(s.id)}</b> · ${s.active ? `${t.alert} ${duration(s.alert_minutes, t)} · ${t.clearIn} ${pct(s.pc[horizon])} ${t.within} ${t.h[horizon]}` : `${t.startKey} ${pct(s.p[horizon])} ${t.within} ${t.h[horizon]}`}`
+    ? `<b>${name(s.id)}</b> · ${s.active ? `${t.alert} ${duration(s.alert_minutes, t)} · ${t.clearIn} ${pct(PC(s)[horizon])} ${t.within} ${t.h[horizon]}` : `${t.startKey} ${pct(P(s)[horizon])} ${t.within} ${t.h[horizon]}`}`
     : `<span style="color:var(--dim)">${t.tap}</span>`;
 
   const rows = [...regions].sort((a, b) =>
-    a.active !== b.active ? (a.active ? 1 : -1) : a.active ? b.pc[horizon] - a.pc[horizon] : b.p[horizon] - a.p[horizon]);
+    a.active !== b.active ? (a.active ? 1 : -1) : a.active ? PC(b)[horizon] - PC(a)[horizon] : P(b)[horizon] - P(a)[horizon]);
   $("list").innerHTML = rows.map((r) => {
     const cls = `${r.active ? "active" : ""}${r.id === selected ? " selected" : ""}`;
     if (r.active) {
-      const pc = r.pc[horizon];
+      const pc = PC(r)[horizon];
       return `<li class="${cls}" data-id="${r.id}"><span class="name">${name(r.id)}<small>${t.alert} ${duration(r.alert_minutes, t)}</small></span><span class="pct">${pct(pc)}</span><span></span><span class="bar"><i style="width:${Math.max(pc * 100, 1)}%;background:${clearColor(pc)}"></i></span></li>`;
     }
-    const p = r.p[horizon];
+    const p = P(r)[horizon];
     return `<li class="${cls}" data-id="${r.id}"><span class="name">${name(r.id)}</span><span class="pct">${pct(p)}</span><span></span><span class="bar"><i style="width:${Math.max(p * 100, 1)}%;background:${color(p)}"></i></span></li>`;
   }).join("");
 
@@ -245,6 +257,7 @@ function render() {
   $("foot").innerHTML =
     (state.last_post_at ? `<div>${t.lastPost} ${time(state.last_post_at)}</div>` : "") +
     `<div>${t.model} ${state.model} + ${state.clear_model}, ${t.trained} ${date(state.trained_until)}</div>` +
+    (variant === "untested" && !$("variant").hidden ? `<div>${t.untestedNote}</div>` : "") +
     `<div>${t.note}</div>`;
 }
 
@@ -266,6 +279,7 @@ function select(e) {
 $("map").addEventListener("click", select);
 $("list").addEventListener("click", select);
 $("horizon").addEventListener("change", (e) => { horizon = e.target.value; localStorage.setItem("horizon", horizon); render(); });
+$("variant").addEventListener("change", (e) => { variant = e.target.value; localStorage.setItem("variant", variant); render(); });
 $("lang").addEventListener("click", () => { lang = lang === "uk" ? "en" : "uk"; localStorage.setItem("lang", lang); render(); });
 $("theme").addEventListener("click", () => {
   theme = { auto: "dark", dark: "light", light: "auto" }[theme];

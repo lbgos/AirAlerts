@@ -219,7 +219,8 @@ def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> 
     clf = make_classifier(config, features)
     step = "lgbmclassifier__" if config.family == "lgbm" else "logisticregression__"
     clf.fit(train[features], train[y], **({"sample_weight": weights} if config.family == "lgbm" else {f"{step}sample_weight": weights}))
-    calibrator = fit_calibrator(config.calibration, clf.predict_proba(calib[features])[:, 1], calib[y].to_numpy(), config.bound_z)
+    raw = clf.predict_proba(calib[features])[:, 1] if config.calibration != "none" else np.empty(0)  # "none": calib may be empty
+    calibrator = fit_calibrator(config.calibration, raw, calib[y].to_numpy(), config.bound_z)
     return HorizonModel(horizon, features, clf, calibrator)
 
 
