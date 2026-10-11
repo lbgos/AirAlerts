@@ -14,8 +14,9 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-from .alerts import parse_post
+from .alerts import KYIV_CITY, parse_post
 from .geo import NEIGHBORS, REGIONS, RING2
+from .kyiv import RING_RAIONS, distance_to_kyiv
 from .nebo import GROUPS as NEBO_GROUPS
 from .nebo import KYIV_REGIONS as NEBO_REGIONS
 
@@ -52,17 +53,18 @@ def load_events(path: Path) -> pd.DataFrame:
         return events_from_posts(json.loads(line) for line in f)
 
 
-def alert_intervals(events: pd.DataFrame) -> dict[str, np.ndarray]:
+def alert_intervals(events: pd.DataFrame, by_place: bool = False) -> dict:
     """Per region, disjoint sorted [start, end) intervals (int64 ns) when any place in it was under alert.
+    With `by_place`, the same per (region, place) instead, for places that ever had a siren.
 
     Places open on a start event and close on an end event for the same place, or after ALERT_EXPIRY.
     """
     open_at: dict[tuple[str, str], pd.Timestamp] = {}
-    spans: dict[str, list[tuple[int, int]]] = {r: [] for r in REGIONS}
+    spans: dict = {} if by_place else {r: [] for r in REGIONS}
 
     def close(key: tuple[str, str], end: pd.Timestamp) -> None:
         start = open_at.pop(key)
-        spans[key[0]].append((start.value, min(end, start + ALERT_EXPIRY).value))
+        spans.setdefault(key if by_place else key[0], []).append((start.value, min(end, start + ALERT_EXPIRY).value))
 
     for ev in events[events["kind"].isin(["start", "end"])].itertuples():
         key = (ev.oblast, ev.place)
@@ -112,6 +114,75 @@ def sum_before(times: np.ndarray, weights: np.ndarray, t: np.ndarray, window: pd
     """Sum of weights of events in [t - window, t). `times` sorted int64 ns, `weights` aligned with it."""
     cs = np.concatenate([[0.0], np.cumsum(weights)])
     return cs[np.searchsorted(times, t, side="left")] - cs[np.searchsorted(times, t - window.value, side="left")]
+
+
+def min_before(times: np.ndarray, values: np.ndarray, t: np.ndarray, window: pd.Timedelta, empty: float, lag_minutes: int = 0) -> np.ndarray:
+    """Smallest value among events in [t - lag - window, t - lag), `empty` where there are none. `times` sorted int64 ns."""
+    end = t - pd.Timedelta(minutes=lag_minutes).value
+    lo = np.searchsorted(times, end - window.value, side="left")
+    hi = np.searchsorted(times, end, side="left")
+    vals = np.append(values, empty)  # reduceat indices may equal len(values)
+    out = np.minimum.reduceat(vals, np.ravel(np.column_stack([lo, hi])))[::2]
+    return np.where(hi > lo, out, empty)
+
+
+# 2026-09-06 the channel switched from one air alert to yellow/red levels (first 🔴 at 01:00 UTC); siren habits
+# changed with it (Kyiv city starts per month jumped), so the "regime" group flags rows after it.
+REFORM = pd.Timestamp("2026-09-06T00:00Z")
+DIST_CAP = 400.0  # km; "no threat near Kyiv"
+
+
+def kyiv_features(events: pd.DataFrame, t: np.ndarray) -> dict[str, np.ndarray]:
+    """Group "kyiv" (ky_*), for the Kyiv city rows: sirens in the seven Kyiv-oblast raions, and how close to Kyiv the
+    threats named in the last minutes are (towns in kyiv.PLACES; any place inside the city = 0 km) and whether they come closer.
+    """
+    raion_iv = alert_intervals(events[events["oblast"] == "kyivska"], by_place=True)
+    f: dict[str, np.ndarray] = {}
+    ring_starts = []
+    for raion, name in RING_RAIONS.items():
+        iv = raion_iv.get(("kyivska", raion), np.empty((0, 2), dtype=np.int64))
+        st = np.sort(events.loc[(events["kind"] == "start") & (events["oblast"] == "kyivska") & (events["place"] == raion), "ts"]
+                     .to_numpy(dtype="datetime64[ns]").astype(np.int64))
+        ring_starts.append(st)
+        f[f"ky_{name}_active"] = is_active(iv, t).astype(np.int64)
+        f[f"ky_{name}_min_since_start"] = minutes_since(st, t)
+    all_ring = np.sort(np.concatenate(ring_starts))
+    f["ky_ring_active"] = np.sum([f[f"ky_{n}_active"] for n in RING_RAIONS.values()], axis=0)
+    f["ky_ring_min_since_start"] = minutes_since(all_ring, t)
+    for wname, w in {"10m": RECENT, "30m": WINDOWS["30m"]}.items():
+        f[f"ky_ring_starts_{wname}"] = count_before(all_ring, t, w)
+
+    thr = events[events["kind"] == "threat"]
+    dist = np.array([d if (d := distance_to_kyiv(o, p)) is not None else np.nan for o, p in zip(thr["oblast"], thr["place"])], dtype=float)
+    known = ~np.isnan(dist)
+    ts = thr["ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64)[known]
+    dist, detail = dist[known], thr["detail"].to_numpy()[known]
+    order = np.argsort(ts, kind="stable")
+    ts, dist, detail = ts[order], dist[order], detail[order]
+    for wname, w in {"10m": RECENT, "30m": WINDOWS["30m"], "1h": WINDOWS["1h"]}.items():
+        f[f"ky_dist_min_{wname}"] = min_before(ts, dist, t, w, DIST_CAP)
+    for g, kinds in (("drone", ["drone"]), ("missile", ["high_speed"])):
+        m = np.isin(detail, kinds)
+        f[f"ky_dist_{g}_30m"] = min_before(ts[m], dist[m], t, WINDOWS["30m"], DIST_CAP)
+    for km in (30, 60):
+        near = ts[dist <= km]
+        f[f"ky_near{km}_15m"] = count_before(near, t, pd.Timedelta(minutes=15))
+        f[f"ky_near{km}_30m"] = count_before(near, t, WINDOWS["30m"])
+    # Approach: nearest threat in the last 15 min minus nearest in the 45 min before (negative = coming closer).
+    f["ky_dist_trend"] = min_before(ts, dist, t, pd.Timedelta(minutes=15), DIST_CAP) - min_before(
+        ts, dist, t, pd.Timedelta(minutes=45), DIST_CAP, lag_minutes=15)
+    return f
+
+
+def kyiv_features_blank(f: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """The same columns for the other regions: nothing near, nothing active."""
+    def blank(name: str, a: np.ndarray) -> np.ndarray:
+        if "min_since" in name:
+            return np.full(len(a), 24 * 60.0)
+        if "_dist_" in name and not name.endswith("trend"):
+            return np.full(len(a), DIST_CAP)
+        return np.zeros(len(a), dtype=a.dtype)
+    return {k: blank(k, v) for k, v in f.items()}
 
 
 # Radar-channel events (student classifier output) grouped like the alert-channel threats.
@@ -192,6 +263,9 @@ def build_table(
     if nebo is not None:
         nebo_times = {g: np.sort(nebo.loc[nebo["group"] == g, "ts"].to_numpy(dtype="datetime64[ns]").astype(np.int64)) for g in ("post", *NEBO_GROUPS)}
 
+    ky = kyiv_features(events, t)
+    ky_blank = kyiv_features_blank(ky)
+
     kyiv_time = grid.tz_convert("Europe/Kyiv")
     frames = []
     for r in REGIONS:
@@ -202,6 +276,7 @@ def build_table(
             "active": active[r],
             "hour": kyiv_time.hour.to_numpy() + kyiv_time.minute.to_numpy() / 60,
             "weekday": kyiv_time.weekday.to_numpy(),
+            "reform": (t >= REFORM.value).astype(np.int64),
             "min_since_start": minutes_since(starts[r], t),
             "starts_24h": count_before(starts[r], t, pd.Timedelta(hours=24)),
             "nb_active": np.sum([active[n] for n in nb], axis=0) if nb else np.zeros(len(t)),
@@ -242,6 +317,7 @@ def build_table(
         f["rc_national_ends_10m"] = count_before(all_ends, t, RECENT)
         f["rc_nb_newly_active_15m"] = np.sum([active[n] & ~active_15m_ago[n] for n in nb], axis=0) if nb else 0
         f["rc_national_active_change_15m"] = national_active - np.sum([active_15m_ago[n] for n in REGIONS], axis=0)
+        f.update(ky if r == KYIV_CITY else ky_blank)
         if nebo is not None:
             kyiv = r in NEBO_REGIONS
             for g, ts_ in nebo_times.items():
@@ -315,4 +391,6 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "clear_radar": [c for c in cols if c.startswith("clr_radar_")],
         "recent": [c for c in cols if c.startswith("rc_")],
         "nebo": [c for c in cols if c.startswith("neb_")],
+        "kyiv": [c for c in cols if c.startswith("ky_")],
+        "regime": ["reform"],
     }

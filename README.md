@@ -108,6 +108,28 @@ Kyiv city, last week (`scripts/kyiv_week.py`, `reports/kyiv_week_test.md`; featu
 The channel adds little on top of the alert channel: when Kyiv oblast is already under alert, a city siren follows
 within 15 min 26% of the time after a "new drone" post vs 18% without one. Live mode keeps the alert-channel model.
 
+### Kyiv geography round (k1)
+
+Goal: forecasts that are usually decisive, 70%+ and right or under 30% and nothing happens. The alert channel names
+the raion of every siren and the town of every threat ("🛸 Бровари"), which the general features collapse to the
+oblast. Group `kyiv` (`kyiv.py`) keeps them for Kyiv city: which of the seven Kyiv-oblast raions are under alert and
+since when, how far from Kyiv the threats named in the last 10/30/60 min are (about 80 towns with coordinates), how
+many within 30/60 km, and whether the nearest one comes closer. Group `regime` flags rows after the 2026-09-06 switch
+to yellow/red levels. Kyiv city, 3 dev weeks pooled (`scripts/kyiv_eval.py`, `reports/kyiv_eval_dev.md`), Platt:
+
+| 15-minute horizon | forecasts 70%+ (came true) | forecasts under 30% (came true) | Brier (climatology 0.111) | AUC |
+|:--|--:|--:|--:|--:|
+| alert channel (k1_base) | 0.1% (50%) | 87% (7%) | 0.0872 | 0.812 |
+| + Kyiv geography | 0.1% (67%) | 86% (7%) | 0.0870 | 0.819 |
+| + geography, Kyiv city rows only | 0.1% | 94% (9%) | 0.0864 | 0.822 |
+| + geography + @nebo_raketa | 0.3% (60%) | 88% (8%) | 0.0868 | 0.816 |
+
+The geography barely moves the 15-minute forecast and does not help at 1 h–6 h. Since June, a city siren follows
+a Kyiv-oblast raion siren within 15 min only 22% of the time (within 1 h 41%), and 27% of city sirens come less than
+5 min after the latest raion siren, so raions add little to "neighbors under alert". The
+forecast is decisive one way: under 30% (most of the time) a siren follows 7–9% of the time. 70%+ forecasts appear
+at 3 h (54%, came true 86%) and 6 h (76%, came true 91%), not at 15–60 min.
+
 ## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
 
 | features | skill |

@@ -89,6 +89,20 @@ CONFIGS = [
     Config("f2s_nebo", groups=FULL + ("wave", "recent", "nebo"), lgbm=SMALL, calib_days=7, calibration="conservative", step_minutes=5),
     Config("f2c_nebo", groups=FULL + ("wave", "clear", "recent", "nebo"), lgbm=SMALL, calib_days=7, calibration="conservative",
            step_minutes=5, target="clear"),
+    # Round k1 (user, Kyiv: forecasts should be decisive). Scored on Kyiv city by scripts/kyiv_eval.py. Plain Platt
+    # (the conservative cap held confident forecasts back). "kyiv" = Kyiv-oblast raion sirens and threat-town
+    # distance to Kyiv; "regime" = post-2026-09-06 flag; "_only" = trained on Kyiv city rows only.
+    *[
+        Config(f"k1_{name}", groups=FULL + ("wave", "recent") + extra, lgbm=SMALL, calib_days=7, step_minutes=5, **kw)
+        for name, extra, kw in [
+            ("base", (), {}),
+            ("kyiv", ("kyiv",), {}),
+            ("kyiv_regime", ("kyiv", "regime"), {}),
+            ("kyiv_hl21", ("kyiv", "regime"), {"half_life_days": 21}),
+            ("kyiv_only", ("kyiv", "regime"), {"regions": ("kyiv",)}),
+            ("kyiv_nebo", ("kyiv", "regime", "nebo"), {}),
+        ]
+    ],
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 

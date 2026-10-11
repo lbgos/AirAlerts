@@ -110,3 +110,28 @@ def test_nebo_post_edited_later_counts_from_the_edit(tmp_path):
     assert at("kyivska", "03:45")["neb_clear_10m"] == 1
     assert at("kyivska", "03:15")["neb_city_10m"] == 1 and at("kyivska", "03:15")["neb_down_10m"] == 1
     assert at("poltavska", "03:15")["neb_city_10m"] == 0  # Kyiv regions only
+
+
+def test_kyiv_features_raions_and_threat_distance(tmp_path):
+    posts = [
+        ("2026-10-01T02:00:00+00:00", "🛸 Чернігів (Чернігівська обл.)\nЗагроза застосування БПЛА."),
+        ("2026-10-01T02:20:00+00:00", "🛸 Бровари (Київська обл.)\nЗагроза застосування БПЛА."),
+        ("2026-10-01T02:25:00+00:00", "🟡 Броварський район (Київська обл.)\nЖовтий рівень тривоги."),
+        ("2026-10-01T02:50:00+00:00", "🟢 Броварський район (Київська обл.)\nВідбій тривоги."),
+    ]
+    events = events_from(posts, tmp_path)
+    table = build_table(events, pd.Timestamp("2026-10-01T02:00Z"), pd.Timestamp("2026-10-01T04:00Z"), keep_active=True, step=pd.Timedelta(minutes=5))
+    at = lambda region, hhmm: table[(table.region == region) & (table.ts == pd.Timestamp(f"2026-10-01T{hhmm}Z"))].iloc[0]  # noqa: E731
+    assert at("kyiv", "02:25")["ky_brovary_active"] == 0  # the start at exactly 02:25 is not known yet
+    assert at("kyiv", "02:30")["ky_brovary_active"] == 1 and at("kyiv", "02:30")["ky_ring_active"] == 1
+    assert at("kyiv", "02:55")["ky_ring_active"] == 0
+    assert 110 < at("kyiv", "02:15")["ky_dist_min_30m"] < 135  # Chernihiv
+    assert 10 < at("kyiv", "02:25")["ky_dist_min_10m"] < 25  # Brovary
+    assert at("kyiv", "02:25")["ky_dist_trend"] < -90  # it came closer
+    assert at("kyiv", "02:25")["ky_near30_15m"] == 1
+    assert at("kyivska", "02:25")["ky_dist_min_10m"] == 400 and at("kyivska", "02:30")["ky_ring_active"] == 0  # Kyiv city rows only
+    # No leakage: features up to 02:20 are the same without the later posts.
+    early = build_table(events_from(posts[:1], tmp_path), pd.Timestamp("2026-10-01T02:00Z"), pd.Timestamp("2026-10-01T04:00Z"), keep_active=True, step=pd.Timedelta(minutes=5))
+    cols = [c for c in feature_columns(table) if c.startswith("ky_")]
+    pd.testing.assert_frame_equal(table[table.ts <= "2026-10-01T02:20Z"][cols].reset_index(drop=True),
+                                  early[early.ts <= "2026-10-01T02:20Z"][cols].reset_index(drop=True))

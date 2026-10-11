@@ -53,6 +53,9 @@ class Config:
     bound_z: float = BOUND_Z  # conservative calibration only: width of the Wilson bound (bigger = more cautious)
     step_minutes: int = 15  # forecast grid of the table `forecast train` / `fit-live` build for this config
     train_grid_minutes: int | None = None  # keep only train/calib rows on this grid (e.g. 15 on a 5-minute table)
+    train_since: str | None = None  # drop training rows before this date (a regime change, e.g. the 2026-09 alert reform)
+    half_life_days: float = HALF_LIFE_DAYS  # sample weight halves every this many days back
+    regions: tuple[str, ...] | None = None  # train and calibrate on these regions only (e.g. ("kyiv",))
 
 
 def label(target: Target, horizon: Horizon) -> str:
@@ -206,9 +209,13 @@ def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> 
     if config.train_grid_minutes:
         on_grid = lambda df: df[df["ts"].dt.minute % config.train_grid_minutes == 0]  # noqa: E731
         train, calib = on_grid(train), on_grid(calib)
+    if config.train_since:
+        train = train[train["ts"] >= pd.Timestamp(config.train_since, tz="UTC")]
+    if config.regions:
+        train, calib = train[train["region"].isin(config.regions)], calib[calib["region"].isin(config.regions)]
     groups = feature_groups(table.columns)
     features = [c for g in config.groups for c in groups[g]]
-    weights = 0.5 ** ((split.train_end - train["ts"]).dt.total_seconds() / 86400 / HALF_LIFE_DAYS)
+    weights = 0.5 ** ((split.train_end - train["ts"]).dt.total_seconds() / 86400 / config.half_life_days)
     clf = make_classifier(config, features)
     step = "lgbmclassifier__" if config.family == "lgbm" else "logisticregression__"
     clf.fit(train[features], train[y], **({"sample_weight": weights} if config.family == "lgbm" else {f"{step}sample_weight": weights}))
