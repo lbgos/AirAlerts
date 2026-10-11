@@ -191,7 +191,7 @@ recalibration refits the calibrator before each test day on the 1, 3 or 7 days b
 | daily Platt, previous 7 days | 0.0576 | 0.006 | 59.5 | 0.1091 | 0.013 | 47.4 |
 | daily conservative cap, previous 1 day | 0.0613 | 0.051 | 29.5 | 0.1157 | 0.052 | 39.5 |
 
-Dropping December changes nothing (with a 60-day half-life it already weighs little), so averaging the two adds nothing.
+Dropping December changes nothing (with a 60-day half-life it already weighs little), so averaging the two adds nothing. Training only from 2026-06-01 does not change it either: Brier within 1% of the final model at 15m–3h on both windows, 6h 3% better on dev and 1% worse on the final window.
 Daily Platt makes percentages more honest (calibration error 2–3x lower, Brier 3% lower at 1 h, the same ranking) but
 drops the conservative cap, so more confident forecasts are wrong: on the final window at 1 h, 5.8% of confident
 forecasts were wrong against 4.6% promised. The cap needs more than one day of cases. The live model is unchanged.
