@@ -46,14 +46,24 @@ def get_events() -> pd.DataFrame:
 
 
 def get_table(nebo: bool = False, corridor: bool = False, carrier: bool = False, channels: list[str] | None = None) -> pd.DataFrame:
-    """5-minute start-model table; float32 to fit the memory limit."""
+    """5-minute start-model table; float32 to fit the memory limit (cached that way after the first cast)."""
     key = f"t{TABLE_VERSION}_nebo{int(nebo)}_co{int(corridor)}_ca{int(carrier)}"
     if (corridor or carrier) and channels:
         key += "_" + "-".join(sorted(channels))
-    table = cached(key, lambda: load_table(with_radar=False, step=pd.Timedelta(minutes=5), with_nebo=nebo,
-                                           corridor=corridor, carrier=carrier, text_channels=channels))
+    f32 = CACHE / f"{key}_f32.pkl"
+
+    def build():
+        table = load_table(with_radar=False, step=pd.Timedelta(minutes=5), with_nebo=nebo,
+                           corridor=corridor, carrier=carrier, text_channels=channels)
+        cols = [c for c in table.columns if table[c].dtype == "float64"]
+        table[cols] = table[cols].astype("float32")
+        table.to_pickle(f32)  # next runs skip the 4.5GB re-expansion of the old float64 pickle
+        return table
+
+    table = pd.read_pickle(f32) if f32.exists() else build()
     cols = [c for c in table.columns if table[c].dtype == "float64"]
-    table[cols] = table[cols].astype("float32")
+    if cols:
+        table[cols] = table[cols].astype("float32")
     return table
 
 
