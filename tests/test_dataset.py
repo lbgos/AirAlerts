@@ -82,3 +82,15 @@ def test_all_clear_label_and_duration(tmp_path):
     assert row.active and row.clr_alert_minutes == 55
     assert row.yc_15m == 0 and row.yc_30m == 1  # ends at 02:30, inside (02:00, 02:30]
     assert pd.isna(table[(table.region == "poltavska") & ~table.active].iloc[0].yc_30m)  # no all-clear label when not under alert
+
+
+def test_yellow_and_red_are_one_alert(tmp_path):
+    # "Red ended" comes in a 🟡 section: the place stays under alert until the 🟢 all-clear.
+    posts = [
+        ("2026-10-01T03:00:00+00:00", "🔴 Київ\nЧервоний рівень тривоги."),
+        ("2026-10-01T03:20:00+00:00", "🟡 Відбій червоної тривоги\nКиїв"),
+        ("2026-10-01T04:00:00+00:00", "🟢 Київ\nВідбій тривоги."),
+    ]
+    table = build_table(events_from(posts, tmp_path), pd.Timestamp("2026-10-01T03:00Z"), pd.Timestamp("2026-10-01T04:30Z"), keep_active=True)
+    kyiv = table[table.region == "kyiv"].set_index("ts")["active"]
+    assert kyiv["2026-10-01T03:30Z"] and kyiv["2026-10-01T03:45Z"] and not kyiv["2026-10-01T04:15Z"]

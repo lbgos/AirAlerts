@@ -133,4 +133,9 @@ uv run forecast score-live
 ```
 
 Live mode reads only the alert channel: the final model uses no radar features. New posts are appended to
-`data/raw/UkraineAlarmSignal.jsonl`, so the next `fit-live` trains on them.
+`data/raw/UkraineAlarmSignal.jsonl`, so the next `fit-live` trains on them. It also records `@raketa_trevoga` and
+`@nebo_raketa` (Kyiv-region radar) for later experiments. Yellow and red alert levels count as one air alert:
+an oblast is under alert from its first siren until the all-clear.
+
+Server: `Dockerfile` + `deploy/docker-compose.yml` (restart `unless-stopped`; `data/`, `.env` and the Telegram
+session are mounted, so a redeploy keeps the collected posts and the prediction log).

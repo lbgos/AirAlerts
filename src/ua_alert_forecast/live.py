@@ -23,9 +23,9 @@ from .train import LABEL_CHANNEL, LIVE_MODEL_PATH
 
 HISTORY = pd.Timedelta(hours=30)  # features look back 24h; alerts opened before that can still be running
 POLL_SECONDS = 30
-# Collected only (appended to data/raw/), not used by the models: @raketa_trevoga deletes posts after ~2 days, so its
-# history has to be recorded live before it can be tested as a feature.
-COLLECT_CHANNELS = ["raketa_trevoga"]
+# Collected only (appended to data/raw/), not used by the models: radar channels with oblast/city-level detail
+# (@raketa_trevoga deletes posts after ~2 days, so its history has to be recorded live before it can be tested).
+COLLECT_CHANNELS = ["raketa_trevoga", "nebo_raketa"]
 STATE_PATH = ROOT / "data" / "live" / "state.json"
 # One line per poll: every region's forecasts at that moment, for scoring against what happened (`forecast score-live`).
 PREDICTION_LOG = ROOT / "data" / "live" / "predictions.jsonl"

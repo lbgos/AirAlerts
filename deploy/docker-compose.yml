@@ -1,0 +1,21 @@
+# Server layout (next to this file): app/ (repo checkout), data/, .env, ua_alert_forecast.session.
+# .env holds TG_API_ID / TG_API_HASH for the app and BIND (host address for the port, e.g. a Tailscale IP) for compose.
+# The container also joins the reverse proxy's network, so a proxy host can forward to http://airalerts:8790.
+services:
+  airalerts:
+    build: ./app
+    container_name: airalerts
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+      - ./ua_alert_forecast.session:/app/ua_alert_forecast.session
+    ports:
+      - "${BIND:-127.0.0.1}:8790:8790"
+    networks: [npm_proxy]
+    mem_limit: 2g
+    cpus: 1.0
+
+networks:
+  npm_proxy:
+    external: true
