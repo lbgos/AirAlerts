@@ -94,6 +94,28 @@
   footer { margin-top: 16px; color: var(--dim); font-size: 12px; line-height: 1.5; }
   footer a { color: inherit; }
   .stale { color: #ff9f0a; }
+  /* Motion: one-shot only. Map colours cross-fade in place; bars, popup and chart animate on user actions (body.anim),
+     not on the minute refresh. */
+  svg .region, #map text { transition: fill 0.45s ease; }
+  li, .hrow { transition: background-color 0.15s ease; }
+  @media (hover: hover) { li:hover, .hrow:not(.head):hover { background: var(--line); } }
+  .anim .bar i { animation: grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 14ms); transform-origin: left; }
+  .anim .detail { animation: fade 0.25s ease both; }
+  .anim .detail .ln { stroke-dasharray: 1; animation: draw 0.8s ease-out both; }
+  dialog[open] { animation: pop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  dialog[open]::backdrop { animation: fade 0.22s ease; }
+  dialog.closing { animation: pop-out 0.16s ease-in both; }
+  dialog.closing::backdrop { animation: fade-out 0.16s ease-in both; }
+  @keyframes grow { from { transform: scaleX(0); } }
+  @keyframes fade { from { opacity: 0; } }
+  @keyframes draw { from { stroke-dashoffset: 1; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(0.985); } }
+  @keyframes up { from { transform: translateY(100%); } }
+  @keyframes pop-out { to { opacity: 0; transform: translateY(10px) scale(0.985); } }
+  @keyframes fade-out { to { opacity: 0; } }
+  @keyframes down { to { transform: translateY(100%); } }
+  @media (max-width: 600px) { dialog[open] { animation-name: up; } dialog.closing { animation-name: down; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after, ::backdrop { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
@@ -143,14 +165,14 @@ const T = {
     h: { "15m": "15 хв", "30m": "30 хв", "1h": "1 год", "3h": "3 год", "6h": "6 год" }, within: "за",
     theme: { auto: "тема: авто", dark: "тема: темна", light: "тема: світла" },
     alert: "тривога", alertNow: "тривога зараз", nodata: "окуповано", min: "хв", hr: "год", updated: "оновлено", lastPost: "останній пост каналу",
-    variants: { tested: "перевірена модель", untested: "неперевірена модель" },
-    untestedNote: "Неперевірена модель: навчена на всіх даних до останнього поста, без калібрування і без перевірки. Її відсотки можуть бути завищені або занижені.",
+    variants: { tested: "обережна модель", untested: "свіжа модель" },
+    untestedNote: "Свіжа модель: навчена на всіх даних до останнього поста. Початок тривоги на 3 і 6 год проходить калібрування обережної моделі, решта відсотків як є. Перевірена лише на кількох днях живих даних.",
     ongoing: "триває", alertWord: "тривога", colAlert: "тривога", colPeak: "найвищий прогноз до неї",
     intro: (h) => `Тривоги за 7 днів. Праворуч: найвищий прогноз «почнеться тривога за ${h}», який модель дала перед кожною, як записано тоді. Торкніться тривоги, щоб побачити графік.`,
     lineStart: (h) => `почнеться за ${h}`, lineClear: (h) => `відбій за ${h}`, scrub: "Проведіть по графіку, щоб побачити кожну хвилину.",
     toStart: "До початку", toEnd: "До відбою",
     noAlerts: "За 7 днів тривог із записаним прогнозом немає. Прогнози записуються з",
-    noUntested: "Неперевірена модель записується з 11.10, тому для старіших тривог запису немає.",
+    noUntested: "Свіжа модель записується з 11.10, тому для старіших тривог запису немає.",
     stale: "дані застаріли", model: "модель", trained: "навчена до", tap: "Торкніться області на мапі або в списку.",
     note: "Ймовірності відкалібровані: з прогнозів «30%» тривога починалась приблизно у 3 з 10 випадків. Джерело: @UkraineAlarmSignal. Не офіційне попередження — слухайте сирени. Мапа: geoBoundaries, © OpenStreetMap. Зроблено на Python: LightGBM, scikit-learn, pandas, NumPy, Telethon.",
   },
@@ -161,14 +183,14 @@ const T = {
     h: { "15m": "15 min", "30m": "30 min", "1h": "1 hour", "3h": "3 hours", "6h": "6 hours" }, within: "within",
     theme: { auto: "theme: auto", dark: "theme: dark", light: "theme: light" },
     alert: "alert", alertNow: "alert now", nodata: "occupied", min: "min", hr: "h", updated: "updated", lastPost: "last channel post",
-    variants: { tested: "tested model", untested: "untested model" },
-    untestedNote: "Untested model: trained on all data up to the last post, with no calibration and no test. Its percentages may run high or low.",
+    variants: { tested: "careful model", untested: "fresh model" },
+    untestedNote: "Fresh model: trained on all data up to the last post. Siren starts at 3 h and 6 h go through the careful model's calibration, the rest are raw. Checked on only a few days of live data.",
     ongoing: "ongoing", alertWord: "alert", colAlert: "alert", colPeak: "highest forecast before it",
     intro: (h) => `Alerts of the last 7 days. On the right: the highest "siren within ${h}" forecast the model gave before each one, as logged at the time. Tap an alert for its chart.`,
     lineStart: (h) => `siren within ${h}`, lineClear: (h) => `all-clear within ${h}`, scrub: "Drag across the chart to see each minute.",
     toStart: "Before the siren", toEnd: "Before the all-clear",
     noAlerts: "No alerts with a logged forecast in the last 7 days. Forecasts are logged since",
-    noUntested: "The untested model is logged since 11.10, so older alerts have no record for it.",
+    noUntested: "The fresh model is logged since 11.10, so older alerts have no record for it.",
     stale: "data is stale", model: "model", trained: "trained until", tap: "Tap an oblast on the map or in the list.",
     note: "Probabilities are calibrated: of forecasts saying 30%, about 3 in 10 saw a siren start. Source: @UkraineAlarmSignal. Not an official warning — follow the sirens. Map: geoBoundaries, © OpenStreetMap. Built with Python: LightGBM, scikit-learn, pandas, NumPy, Telethon.",
   },
@@ -200,6 +222,7 @@ let state = null, geo = null, selected = null;
 // Popup oblast's past alerts (/history.json): {region, since, alerts: [{start, end, peak}], open: expanded alert's
 // start or null, series: {start: its minute-by-minute forecasts}}
 let hist = null;
+let motion = true; // the next render animates (first data, user actions); minute refreshes do not
 const LEADS = [60, 30, 15, 5]; // minutes before the siren / all-clear, listed under the chart
 const HMIN = { "15m": 15, "30m": 30, "1h": 60, "3h": 180, "6h": 360 };
 
@@ -239,29 +262,39 @@ function applyTheme() {
   document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
 }
 
+// Shapes are built once per region set (and language, for the titles); later renders only change fills, labels and
+// selection, so the CSS fill transition cross-fades the colours.
 function renderMap(byId, t) {
   if (!geo) return;
   const svg = $("map");
-  svg.setAttribute("viewBox", geo.viewBox);
   const value = (r) => (r.active ? PC(r)[horizon] : P(r)[horizon]);
   const fillOf = (r) => (r.active ? clearColor(value(r)) : color(value(r)));
-  const labelOf = (r, x, y, size) => `<text x="${x}" y="${y}" font-size="${size}" fill="${ink(fillOf(r))}">${pct(value(r))}</text>`;
-  let out = "";
-  out += [...geo.other, ...[...NO_DATA].map((id) => geo.regions[id].d)].map((d) => `<path class="nodata" d="${d}"/>`).join("");
   const ids = Object.keys(geo.regions).filter((id) => byId[id]).sort((a, b) => (a === "kyiv") - (b === "kyiv")); // city on top
+  const key = lang + ids.join();
+  if (svg.dataset.key !== key) {
+    svg.setAttribute("viewBox", geo.viewBox);
+    let out = [...geo.other, ...[...NO_DATA].map((id) => geo.regions[id].d)].map((d) => `<path class="nodata" d="${d}"/>`).join("");
+    for (const id of ids) {
+      out += id === "kyiv"
+        ? `<rect class="region" data-id="kyiv" x="${INSET.x}" y="${INSET.y}" width="${INSET.size}" height="${INSET.size}" rx="14" style="cursor:pointer"><title>${name(id)}</title></rect>`
+        : `<path class="region" data-id="${id}" d="${geo.regions[id].d}"><title>${name(id)}</title></path>`;
+    }
+    for (const id of ids) {
+      const [x, y, size] = id === "kyiv" ? [INSET.x + INSET.size / 2, INSET.y + INSET.size / 2, 34] : [...geo.regions[id].label, 30];
+      out += `<text data-label="${id}" x="${x}" y="${y}" font-size="${size}"></text>`;
+    }
+    if (byId.kyiv) out += `<text x="${INSET.x + INSET.size / 2}" y="${INSET.y - 22}" font-size="26" fill="var(--fg)">${name("kyiv")}</text>`;
+    svg.innerHTML = out;
+    svg.dataset.key = key;
+  }
   for (const id of ids) {
-    out += `<path class="region${id === selected ? " selected" : ""}" data-id="${id}" d="${geo.regions[id].d}" fill="${fillOf(byId[id])}"><title>${name(id)}</title></path>`;
+    const fill = fillOf(byId[id]), shape = svg.querySelector(`.region[data-id="${id}"]`), label = svg.querySelector(`[data-label="${id}"]`);
+    shape.style.fill = fill;
+    shape.classList.toggle("selected", id === selected);
+    if (id === "kyiv") shape.setAttribute("stroke", id === selected ? "var(--fg)" : "var(--border)"), shape.setAttribute("stroke-width", id === selected ? 3 : 1.5);
+    label.textContent = pct(value(byId[id]));
+    label.style.fill = ink(fill);
   }
-  for (const id of ids) if (id !== "kyiv") out += labelOf(byId[id], ...geo.regions[id].label, 30);
-  const k = byId.kyiv;
-  if (k) {
-    const { x, y, size } = INSET;
-    out += `<rect class="region${selected === "kyiv" ? " selected" : ""}" data-id="kyiv" x="${x}" y="${y}" width="${size}" height="${size}" rx="14"
-      fill="${fillOf(k)}" stroke="${selected === "kyiv" ? "var(--fg)" : "var(--border)"}" stroke-width="${selected === "kyiv" ? 3 : 1.5}" style="cursor:pointer"/>`;
-    out += labelOf(k, x + size / 2, y + size / 2, 34);
-    out += `<text x="${x + size / 2}" y="${y - 22}" font-size="26" fill="var(--fg)">${name("kyiv")}</text>`;
-  }
-  svg.innerHTML = out;
   svg.setAttribute("aria-label", t.title);
 }
 
@@ -282,6 +315,8 @@ function render() {
   document.querySelectorAll(".horizon").forEach((el) => (el.innerHTML = options(t.h, horizon)));
   document.querySelectorAll(".variant").forEach((el) => (el.innerHTML = options(t.variants, variant)));
   if (!state) return;
+  document.body.classList.toggle("anim", motion);
+  motion = false;
   const hasUntested = state.regions.some((r) => r.pu);
   document.querySelectorAll(".variant").forEach((el) => (el.hidden = !hasUntested));
 
@@ -298,14 +333,14 @@ function render() {
 
   const rows = [...regions].sort((a, b) =>
     a.active !== b.active ? (a.active ? 1 : -1) : a.active ? PC(b)[horizon] - PC(a)[horizon] : P(b)[horizon] - P(a)[horizon]);
-  $("list").innerHTML = rows.map((r) => {
+  $("list").innerHTML = rows.map((r, i) => {
     const cls = `${r.active ? "active" : ""}${r.id === selected ? " selected" : ""}`;
     if (r.active) {
       const pc = PC(r)[horizon];
-      return `<li class="${cls}" data-id="${r.id}"><span class="name">${name(r.id)}<small>${t.alert} ${duration(r.alert_minutes, t)}</small></span><span class="pct">${pct(pc)}</span><span></span><span class="bar"><i style="width:${Math.max(pc * 100, 1)}%;background:${clearColor(pc)}"></i></span></li>`;
+      return `<li class="${cls}" data-id="${r.id}" style="--i:${i}"><span class="name">${name(r.id)}<small>${t.alert} ${duration(r.alert_minutes, t)}</small></span><span class="pct">${pct(pc)}</span><span></span><span class="bar"><i style="width:${Math.max(pc * 100, 1)}%;background:${clearColor(pc)}"></i></span></li>`;
     }
     const p = P(r)[horizon];
-    return `<li class="${cls}" data-id="${r.id}"><span class="name">${name(r.id)}</span><span class="pct">${pct(p)}</span><span></span><span class="bar"><i style="width:${Math.max(p * 100, 1)}%;background:${color(p)}"></i></span></li>`;
+    return `<li class="${cls}" data-id="${r.id}" style="--i:${i}"><span class="name">${name(r.id)}</span><span class="pct">${pct(p)}</span><span></span><span class="bar"><i style="width:${Math.max(p * 100, 1)}%;background:${color(p)}"></i></span></li>`;
   }).join("");
 
   const stale = Date.now() - new Date(state.generated_at) > 3 * 60 * 1000;
@@ -357,8 +392,8 @@ function chart(d) {
     <rect x="${bx}" y="${TOP}" width="${Math.max(X(x1) - bx, 2)}" height="${H - TOP - B}" fill="var(--red)" opacity="0.18"/>
     <text x="${bx > W / 2 ? W - R : bx + 4}" y="${TOP - 6}" font-size="11" style="text-anchor:${bx > W / 2 ? "end" : "start"};fill:var(--red)">${t.alertWord} ${time(d.start * 1000)}</text>
     ${[0, 0.5, 1].map((p) => `<line x1="${L}" x2="${W - R}" y1="${Y(p)}" y2="${Y(p)}" stroke="var(--line)" stroke-width="1"/><text x="${L - 5}" y="${Y(p)}" font-size="11" style="text-anchor:end">${p * 100}%</text>`).join("")}
-    <path d="${paths.false}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round"/>
-    <path d="${paths.true}" fill="none" stroke="${blue}" stroke-width="2.5" stroke-linejoin="round"/>
+    <path class="ln" pathLength="1" d="${paths.false}" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path class="ln" pathLength="1" d="${paths.true}" fill="none" stroke="${blue}" stroke-width="2.5" stroke-linejoin="round"/>
     ${ticks}<g class="cur"></g></svg>`;
 }
 
@@ -423,6 +458,7 @@ async function loadHistory() {
   hist = { region, since: list.since, alerts: list.alerts, open, series: prev?.series ?? {} };
   const a = list.alerts.find((x) => x.start === open);
   if (a && (!hist.series[open] || a.end === null || hist.series[open].end !== a.end)) await loadSeries(open);
+  if (!prev) motion = true;
   render();
 }
 
@@ -444,22 +480,41 @@ function select(e) {
   if (!id) return;
   selected = id;
   if (!$("sheet").open) { $("sheet").showModal(); $("sheet").focus(); } // focus the popup, not the close button
+  motion = true;
   render();
   loadHistory();
 }
 
 $("map").addEventListener("click", select);
 $("list").addEventListener("click", select);
-$("close").addEventListener("click", () => $("sheet").close());
-$("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) $("sheet").close(); });
+// Closing plays the open animation in reverse first (instant when reduced motion turns animations off).
+function closeSheet() {
+  const d = $("sheet");
+  if (!d.open || d.classList.contains("closing")) return;
+  if (getComputedStyle(d).animationName === "none") return d.close();
+  const done = (e) => { // bars and charts inside the popup fire animationend too
+    if (e && e.target !== d) return;
+    d.removeEventListener("animationend", done);
+    clearTimeout(timer);
+    d.classList.remove("closing");
+    if (d.open) d.close();
+  };
+  const timer = setTimeout(done, 400); // in case animationend never comes
+  d.addEventListener("animationend", done);
+  d.classList.add("closing");
+}
+$("close").addEventListener("click", closeSheet);
+$("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) closeSheet(); });
+$("sheet").addEventListener("cancel", (e) => { e.preventDefault(); closeSheet(); }); // Esc
 $("sheet").addEventListener("close", () => { selected = null; hist = null; render(); });
 $("history").addEventListener("click", async (e) => {
   const row = e.target.closest(".hrow[data-start]");
   if (!row || !hist) return;
   const start = +row.dataset.start;
   hist.open = hist.open === start ? null : start;
+  motion = true;
   render();
-  if (hist.open !== null && !hist.series[start]) { await loadSeries(start); render(); }
+  if (hist.open !== null && !hist.series[start]) { await loadSeries(start); motion = true; render(); }
 });
 $("history").addEventListener("pointerdown", scrub);
 $("history").addEventListener("pointermove", (e) => { if (e.pointerType === "mouse" || e.buttons) scrub(e); });
@@ -467,6 +522,7 @@ document.addEventListener("change", (e) => {
   if (e.target.matches(".horizon")) localStorage.setItem("horizon", (horizon = e.target.value));
   else if (e.target.matches(".variant")) localStorage.setItem("variant", (variant = e.target.value));
   else return;
+  motion = true;
   render();
 });
 $("lang").addEventListener("click", () => { lang = lang === "uk" ? "en" : "uk"; localStorage.setItem("lang", lang); render(); });
