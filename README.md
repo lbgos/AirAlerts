@@ -128,7 +128,28 @@ At 3 h and 6 h it said too little: sirens followed within 6 h 80% of the time wh
 ranking held (AUC 0.96 at 6 h), so the error is in the level, not in which oblasts come first. My guess is the
 conservative cap, which pulls forecasts toward 50% where the calibration days had few cases, and a day this busy is
 where that costs most. It is one day, though, and a few more will say whether it is the cap or just 11 October.
-The untested model has been logged since 11 October 21:24 UTC and has nothing scored yet.
+
+### Careful vs fresh, 11-17 October
+
+The page has two models. "Careful" is the one above: it never sees the last 7 days and uses them to calibrate and cap
+its percentages. "Fresh" trains on everything up to the last post. It has been logged next to the careful one since
+11 October 21:24 UTC. Over 5.5 days of live forecasts (197k, one per oblast per 5 minutes) it was slightly better in
+Brier at every horizon. In Kyiv the gap was bigger: for a siren within 15 minutes the careful model averaged 21%
+against 10% that happened (Brier 0.098), the fresh one 15% (0.089, the same as a constant at Kyiv's own rate). The
+fresh model said too little at long horizons, though: 63% on average for a siren within 6 h, against 70%.
+
+I then replayed the daily refits on the same moments. The replay matches the logged forecasts to 0.006 on average. It
+tried a third option, the fresh classifier with the careful model's calibrator. That fixed 3 h and 6 h siren starts but
+brought back the Kyiv over-forecast at 15 min to 1 h. So the fresh model now uses the calibrator for siren starts at
+3 h and 6 h only:
+
+| siren start (replay) | careful | fresh, raw | fresh, calibrated at 3 h/6 h | constant at true rate |
+|---|---|---|---|---|
+| 3h | 0.132 | 0.130 | 0.127 | 0.242 |
+| 6h | 0.096 | 0.095 | 0.087 | 0.210 |
+
+I picked that split by looking at these same days, so the table flatters it. The next weeks are the real test. Five
+days is also few: neighbouring forecasts are nearly identical, so there are far fewer independent cases than rows.
 
 ### 15-minute round (dev window, 15m horizon)
 
@@ -290,5 +311,7 @@ Telegram session are mounted, so a redeploy keeps the collected posts and the pr
 7 days and calibrates on those, and live mode picks up the new model without a restart. On the last 3 days of data, a
 model calibrated on the 7 days right before them beat one 21 days older at 1 h (Brier 0.148 vs 0.152) and 3 h (0.133
 vs 0.145), and was confidently wrong less often. At 15 min they were equal.
-The page also has a model toggle. "Untested" is fitted on all data up to the last post, with no calibration hold-out
-(raw LightGBM probabilities) and no test, and the page says so. The refit container peaks at about 5.3 GB.
+The page also has a model toggle between "careful" (the model above) and "fresh", which is fitted on all data up to
+the last post with no calibration hold-out. Fresh gives raw LightGBM probabilities except for siren starts at 3 h and
+6 h, which go through the careful model's calibrator (see "Careful vs fresh" above). The refit container peaks at
+about 5.3 GB.

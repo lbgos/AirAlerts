@@ -59,11 +59,18 @@ def train(config: Config) -> None:
     print("\n".join(lines))
 
 
+# Raw fresh siren-start forecasts ran low at long horizons. A replay of the live refits over 11-17 Oct 2026 put the
+# careful model's calibrator on them: Brier at 6 h 0.087 vs 0.095 raw, mean 71% vs 70% observed (63% raw). At 15 min
+# to 1 h the calibrator brought back the careful model's over-forecast in Kyiv, so it stays off there.
+FRESH_CALIBRATED = ("3h", "6h")
+
+
 def fit_live(config: Config, clear_config: Config) -> None:
     """Refit the start and all-clear configs on all data for live use: train on everything but the last calib_days,
     calibrate on those. The final-test models leave out the latest 14 days; tactics drift, so live uses them too.
-    Also fits an "untested" pair for the page's model toggle: trained on everything up to the last post, no calibration
-    hold-out, raw LightGBM probabilities. Nothing measures it; the page says so.
+    Also fits a "fresh" pair for the page's model toggle (bundle keys untested_*): trained on everything up to the last
+    post, no calibration hold-out, raw LightGBM probabilities, except siren starts at FRESH_CALIBRATED horizons, which go
+    through the careful model's calibrator.
     """
     if any(g in c.groups for c in (config, clear_config) for g in ("radar", "clear_radar")):
         raise SystemExit("live mode reads only the alert channel; pick configs without radar groups")
@@ -75,8 +82,11 @@ def fit_live(config: Config, clear_config: Config) -> None:
         c = dataclasses.replace(c, calibration="none") if untested else c
         return {h: fit(table, h, split, c) for h in HORIZONS}
 
-    bundle = {"config": config, "models": fit_all(config), "clear_config": clear_config, "clear_models": fit_all(clear_config),
-              "untested_models": fit_all(config, True), "untested_clear_models": fit_all(clear_config, True), "data_end": end}
+    models, fresh = fit_all(config), fit_all(config, True)
+    for h in FRESH_CALIBRATED:
+        fresh[h] = dataclasses.replace(fresh[h], calibrator=models[h].calibrator)
+    bundle = {"config": config, "models": models, "clear_config": clear_config, "clear_models": fit_all(clear_config),
+              "untested_models": fresh, "untested_clear_models": fit_all(clear_config, True), "data_end": end}
     tmp = LIVE_MODEL_PATH.with_suffix(".tmp")  # write then rename, so a running live mode never reads half a file
     tmp.write_bytes(pickle.dumps(bundle))
     tmp.replace(LIVE_MODEL_PATH)
