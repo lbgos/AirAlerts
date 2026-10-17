@@ -92,6 +92,7 @@
   .detail .keys i.blk { height: 10px; vertical-align: -1px; opacity: 0.3; }
   .detail .leads b { font-weight: 650; }
   footer { margin-top: 16px; color: var(--dim); font-size: 12px; line-height: 1.5; }
+  footer a { color: inherit; }
   .stale { color: #ff9f0a; }
 </style>
 </head>
@@ -313,7 +314,8 @@ function render() {
     (state.last_post_at ? `<div>${t.lastPost} ${time(state.last_post_at)}</div>` : "") +
     `<div>${t.model} ${state.model} + ${state.clear_model}, ${t.trained} ${date(state.trained_until)}</div>` +
     (variant === "untested" && hasUntested ? `<div>${t.untestedNote}</div>` : "") +
-    `<div>${t.note}</div>`;
+    `<div>${t.note}</div>` +
+    `<div><a href="https://github.com/lbgos/AirAlerts">GitHub</a> · <a href="https://lbgos.dev">lbgos.dev</a></div>`;
 }
 
 const model = () => (variant === "untested" ? "pu" : "p");
