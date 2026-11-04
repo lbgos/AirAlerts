@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from ua_alert_forecast.model import Conservative, penalty, points, wilson
+from ua_alert_forecast.model import Config, Conservative, features_for, penalty, points, wilson
 
 
 def test_penalty_weights_confident_wrong_forecasts():
@@ -33,3 +33,10 @@ def test_points_reward_confident_right_and_punish_confident_wrong():
     wrong_sure = points(np.array([0]), np.array([0.9]), clim)
     assert right_sure > 3 * right_unsure > 0  # x3 reward on top of the bigger gain
     assert wrong_sure < -10 * abs(points(np.array([0]), np.array([0.7]), clim))
+
+
+def test_groups_by_horizon_override():
+    columns = ["region", "hour", "weekday", "sw_near", "y_15m"]
+    cfg = Config("t", groups=("time",), groups_by_horizon={"15m": ("time", "spatial")})
+    assert features_for(cfg, "15m", columns) == ["region", "hour", "weekday", "sw_near"]
+    assert features_for(cfg, "6h", columns) == ["region", "hour", "weekday"]

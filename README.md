@@ -63,8 +63,8 @@ Older datasets (2022–2024) are not used. Tactics have changed since, and recen
 ### Overconfidence
 
 - Calibration is conservative: Platt scaling, then on the calibration days forecasts are grouped into 20 bins and no
-  forecast may be more certain than the 99% Wilson bound of how often that bin came true. Few cases or past
-  overconfidence pull a forecast toward 50%.
+  forecast may be more certain than the Wilson bound (99%; 90% in the live pair) of how often that bin came true.
+  Few cases or past overconfidence pull a forecast toward 50%.
 - `penalty`: log loss where confident forecasts (<= 20% or >= 80%) that turned out wrong count 10x.
 - `points` (higher is better): log2 score gained over climatology per 100 forecasts; confident forecasts that were
   right count 3x, confident ones that were wrong 10x. Used to pick the 15-minute model.
@@ -260,6 +260,36 @@ confident forecasts were wrong against 4.6% promised. The cap needs more than on
 keeps it.
 Script: `scripts/recal_eval.py`.
 
+### Walk-forward round (r9)
+
+Earlier rounds picked a model on one dev window and confirmed it on one test window. Two weeks of sirens
+are few enough that one window cannot separate small changes. Round r9 scores candidates on four 14-day windows
+ending 2026-09-07, 09-21, 10-05 and 10-19 (each trains on everything before it, calibrates on the 7 days
+before the test window), then looks once at the window ending 11-02.
+
+Two changes survived. The conservative cap now uses a 90% Wilson bound (`bound_z=1.645`) instead of 99%:
+the 99% bound was pulling forecasts toward 50%, and on the four windows the looser cap improved Brier at
+every horizon tested without making confident forecasts wrong more often than they promised. Siren starts
+also get a `spatial` feature group: other oblasts' activity weighted by distance, recent sirens east and
+north-east, the distance to the nearest active oblast and whether it is closing in, and where the centre of
+the last hour's sirens is moving.
+
+Brier vs the live pair, refitted inside each window (negative is better):
+
+| | 15m | 1h | 6h |
+|:--|--:|--:|--:|
+| siren starts, 4 windows | −0.0010 | −0.0008 | −0.0021 |
+| siren starts, sealed 11-02 | −0.0017 | −0.0015 | +0.0017 |
+| all-clear, 4 windows | −0.0022 | −0.0020 | −0.0021 |
+| all-clear, sealed 11-02 | −0.0006 | −0.0022 | −0.0022 |
+
+Skill at 15m rises from 0.121 to 0.135 on the four windows and from 0.143 to 0.163 on the sealed one; the
+all-clear calibration error at 15m falls from 0.032 to 0.017 on the sealed window. On the sealed window the
+6h siren start is the one place the change does not help (+0.0017, interval includes zero); on the four
+earlier windows it improves by 0.0021. Per-horizon feature sets added nothing (`r10s_recent_cons`) and were not
+adopted. Configs: `r9s_recent_cons`, `r9c_recent_cons`; full numbers and the
+rejected variants are in `reports/experiments_r9.md`. The live service runs the r9 pair from 2026-11-04.
+
 ## What helped (siren starts, dev window, 3 h expiry labels; skill = 1 − Brier / Brier of climatology, mean of 30m–6h)
 
 | features | skill |
@@ -295,7 +325,7 @@ uv run forecast train --config f1c_recent_cons
 uv run pytest
 
 # live mode: refit both models on all data, then poll + serve http://<host>:8790; score the log later
-uv run forecast fit-live --config f1s_recent_cons --clear-config f1c_recent_cons
+uv run forecast fit-live --config r9s_recent_cons --clear-config r9c_recent_cons
 uv run forecast live --host 127.0.0.1 --port 8790
 uv run forecast score-live
 ```

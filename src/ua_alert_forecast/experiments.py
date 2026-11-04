@@ -103,6 +103,19 @@ CONFIGS = [
             ("kyiv_nebo", ("kyiv", "regime", "nebo"), {}),
         ]
     ],
+    # Round r9 (walk-forward loop): the conservative cap at a 90% Wilson bound (z=1.645) instead of 99%,
+    # which was pulling long-horizon forecasts toward 50% and costing Brier at every horizon; siren starts
+    # also get the "spatial" group (distance- and sector-weighted neighbour activity, wave centre motion).
+    Config("r9s_recent_cons", groups=FULL + ("wave", "recent", "spatial"), lgbm=SMALL, calib_days=7,
+           calibration="conservative", bound_z=1.645, step_minutes=5),
+    Config("r9c_recent_cons", groups=FULL + ("wave", "clear", "recent"), lgbm=SMALL, calib_days=7,
+           calibration="conservative", bound_z=1.645, step_minutes=5, target="clear"),
+    # Round r10: per-horizon feature groups, spatial at 15m/30m only. Against r9 on four windows it changed 1h
+    # by +0.00004 and 6h by +0.00032 Brier (both intervals include zero), so r9 stays the pair to use.
+    Config("r10s_recent_cons", groups=FULL + ("wave", "recent"),
+           groups_by_horizon={"15m": FULL + ("wave", "recent", "spatial"),
+                              "30m": FULL + ("wave", "recent", "spatial")},
+           lgbm=SMALL, calib_days=7, calibration="conservative", bound_z=1.645, step_minutes=5),
 ]
 BY_NAME = {c.name: c for c in CONFIGS}
 

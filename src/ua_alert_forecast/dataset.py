@@ -191,6 +191,99 @@ RADAR_GROUPS = {"drone": ["shahed", "jet_drone", "recon_drone"], "missile": ["mi
 RADAR_WINDOWS = {"30m": pd.Timedelta(minutes=30), "1h": pd.Timedelta(hours=1)}
 RADAR_NATIONAL_WINDOWS = {"1h": pd.Timedelta(hours=1), "3h": pd.Timedelta(hours=3)}
 
+# Oblast approximate centres; km-scale accuracy is enough for weights that decay over 150-300 km.
+CENTROIDS = {
+    "vinnytska": (49.23, 28.47), "volynska": (51.00, 24.60), "dnipropetrovska": (48.45, 34.99),
+    "donetska": (48.40, 37.80), "zhytomyrska": (50.50, 28.60), "zakarpatska": (48.40, 23.00),
+    "zaporizka": (47.40, 35.50), "ivano_frankivska": (48.50, 24.60), "kyivska": (50.50, 30.50),
+    "kirovohradska": (48.50, 32.50), "luhanska": (48.90, 39.00), "lvivska": (49.70, 24.00),
+    "mykolaivska": (47.50, 32.00), "poltavska": (49.70, 34.00), "rivnenska": (50.70, 26.30),
+    "sumska": (51.00, 34.00), "ternopilska": (49.40, 25.60), "khmelnytska": (49.30, 26.80),
+    "cherkaska": (49.30, 32.00), "chernivetska": (48.30, 25.90), "chernihivska": (51.50, 32.00),
+    "kharkivska": (49.80, 36.50), "khersonska": (46.80, 33.20), "odeska": (47.00, 30.00),
+    "kyiv": (50.45, 30.52),
+}
+
+
+def spatial_features(events: pd.DataFrame, t: np.ndarray) -> dict[str, np.ndarray]:
+    """Group "spatial" (sw_*): where the wave is, not just how many neighbours are active.
+
+    Alert waves cross Ukraine from east/north-east to west. For every region these features weight
+    all other regions' activity by distance (150/300 km decay), count recent sirens in the eastern
+    half, measure the distance to the nearest active oblast and whether it is closing in, and track
+    the centre of the sirens that started in the last hour and where it is moving. Only events before
+    each forecast time are used. Returns one (region, time) array per feature, in REGIONS order.
+    """
+    n_r, n_t = len(REGIONS), len(t)
+    lat = np.array([CENTROIDS[r][0] for r in REGIONS])
+    lon = np.array([CENTROIDS[r][1] for r in REGIONS])
+    x, y = lon * 111.32 * np.cos(np.deg2rad(48.5)), lat * 110.57
+    dx, dy = x[None, :] - x[:, None], y[None, :] - y[:, None]
+    dist = np.hypot(dx, dy)
+    np.fill_diagonal(dist, 0.0)
+
+    intervals = alert_intervals(events)
+    active = np.vstack([is_active(intervals[r], t) for r in REGIONS]).astype(np.float32)
+    starts = {
+        r: np.sort(events.loc[(events["kind"] == "start") & (events["oblast"] == r), "ts"]
+                   .to_numpy(dtype="datetime64[ns]").astype(np.int64))
+        for r in REGIONS
+    }
+
+    def count(window: pd.Timedelta) -> np.ndarray:
+        return np.vstack([count_before(starts[r], t, window) for r in REGIONS]).astype(np.float32)
+
+    s60 = count(pd.Timedelta(minutes=60))
+    s60_prev = np.vstack([count_before(starts[r], t - pd.Timedelta(minutes=60).value, pd.Timedelta(minutes=60))
+                          for r in REGIONS]).astype(np.float32)
+
+    def decay(scale: float) -> np.ndarray:
+        w = np.exp(-dist / scale)
+        np.fill_diagonal(w, 0.0)
+        return w
+
+    east, north = (x[None, :] - x[:, None]) > 0, (y[None, :] - y[:, None]) > 0
+    f = {
+        "sw_active_w150": decay(150) @ active,
+        "sw_active_w300": decay(300) @ active,
+        "sw_starts30_w150": decay(150) @ count(pd.Timedelta(minutes=30)),
+        "sw_starts60_w300": decay(300) @ s60,
+        "sw_starts60_east": (decay(150) * east) @ s60,
+        "sw_starts60_ne": (decay(150) * east * north) @ s60,
+        "sw_starts60_west": (decay(150) * ~east) @ s60,
+    }
+
+    def nearest_to_active(active_at: np.ndarray) -> np.ndarray:
+        out = np.full((n_r, n_t), 400.0, dtype=np.float32)
+        for i in range(n_r):
+            out[i] = np.where(active_at, dist[i][:, None], 400.0).min(axis=0)
+        return out
+
+    nearest = nearest_to_active(active)
+    f["sw_nearest_active_km"] = nearest
+    # Closing speed from the same static intervals evaluated an hour earlier: works for live's single-row grid.
+    hour_ago = t - pd.Timedelta(minutes=60).value
+    active_hour_ago = np.vstack([is_active(intervals[r], hour_ago) for r in REGIONS]).astype(np.float32)
+    f["sw_closing_1h"] = nearest_to_active(active_hour_ago) - nearest
+
+    total, total_prev = s60.sum(axis=0), s60_prev.sum(axis=0)
+    cx = np.where(total > 0, (s60 * x[:, None]).sum(axis=0) / np.maximum(total, 1), np.nan)
+    cy = np.where(total > 0, (s60 * y[:, None]).sum(axis=0) / np.maximum(total, 1), np.nan)
+    px = np.where(total_prev > 0, (s60_prev * x[:, None]).sum(axis=0) / np.maximum(total_prev, 1), cx)
+    py = np.where(total_prev > 0, (s60_prev * y[:, None]).sum(axis=0) / np.maximum(total_prev, 1), cy)
+    missing = np.isnan(cx)
+    cx[missing], cy[missing] = x.mean(), y.mean()
+    px[np.isnan(px)], py[np.isnan(py)] = cx[np.isnan(px)], cy[np.isnan(py)]
+    has = total > 0
+    f["sw_centroid_east_km"] = np.where(has, cx[None, :] - x[:, None], 0.0)
+    f["sw_centroid_north_km"] = np.where(has, cy[None, :] - y[:, None], 0.0)
+    f["sw_centroid_dist_km"] = np.where(has, np.hypot(cx[None, :] - x[:, None], cy[None, :] - y[:, None]), 0.0)
+    vx, vy = cx - px, cy - py  # km moved in the last hour
+    toward = (x[:, None] - cx[None, :]) * vx[None, :] + (y[:, None] - cy[None, :]) * vy[None, :]
+    gap = np.maximum(np.hypot(x[:, None] - cx[None, :], y[:, None] - cy[None, :]), 1.0)
+    f["sw_inflow_kmh"] = np.where(has, toward / gap, 0.0)
+    return {k: v.astype(np.float32) for k, v in f.items()}
+
 
 def build_table(
     events: pd.DataFrame,
@@ -266,10 +359,11 @@ def build_table(
 
     ky = kyiv_features(events, t)
     ky_blank = kyiv_features_blank(ky)
+    spatial = spatial_features(events, t)
 
     kyiv_time = grid.tz_convert("Europe/Kyiv")
     frames = []
-    for r in REGIONS:
+    for i, r in enumerate(REGIONS):
         nb = NEIGHBORS[r]
         f: dict[str, np.ndarray] = {
             "ts": t,
@@ -319,6 +413,7 @@ def build_table(
         f["rc_nb_newly_active_15m"] = np.sum([active[n] & ~active_15m_ago[n] for n in nb], axis=0) if nb else 0
         f["rc_national_active_change_15m"] = national_active - np.sum([active_15m_ago[n] for n in REGIONS], axis=0)
         f.update(ky if r == KYIV_CITY else ky_blank)
+        f.update({name: values[i] for name, values in spatial.items()})
         if nebo is not None:
             kyiv = r in NEBO_REGIONS
             for g, ts_ in nebo_times.items():
@@ -380,7 +475,7 @@ def feature_columns(table: pd.DataFrame) -> list[str]:
 def feature_groups(columns) -> dict[str, list[str]]:
     """Feature columns by source, so experiments can switch whole groups on and off."""
     cols = [c for c in columns if c not in FEATURES_EXCLUDED]
-    return {
+    groups = {
         "time": ["region", "hour", "weekday"],
         "history": ["min_since_start", "starts_24h"],
         "threats": [c for c in cols if c.split("_")[0] in THREAT_GROUPS],
@@ -393,5 +488,9 @@ def feature_groups(columns) -> dict[str, list[str]]:
         "recent": [c for c in cols if c.startswith("rc_")],
         "nebo": [c for c in cols if c.startswith("neb_")],
         "kyiv": [c for c in cols if c.startswith("ky_")],
+        "spatial": [c for c in cols if c.startswith("sw_")],
         "regime": ["reform"],
     }
+    known = {c for cs in groups.values() for c in cs}
+    groups["extra"] = [c for c in cols if c not in known]  # columns added by research plugins
+    return groups

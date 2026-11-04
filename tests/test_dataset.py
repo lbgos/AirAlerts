@@ -63,6 +63,18 @@ def test_neighbors_symmetric_and_complete():
             assert a in NEIGHBORS[b], (a, b)
 
 
+def test_spatial_features_on_live_single_timestamp(tmp_path):
+    # Live mode builds the table for one timestamp only; the spatial group must match a two-row grid there.
+    now = pd.Timestamp("2026-10-01T01:00Z")
+    events = events_from(POSTS, tmp_path)
+    one = build_table(events, now, now, grid=pd.DatetimeIndex([now]).as_unit("ns"), keep_active=True)
+    grid = pd.DatetimeIndex([now - pd.Timedelta(hours=1), now]).as_unit("ns")
+    two = build_table(events, now, now, grid=grid, keep_active=True)
+    spatial = [c for c in one.columns if c.startswith("sw_")]
+    assert len(spatial) == 13 and one[spatial].notna().all().all()
+    pd.testing.assert_frame_equal(one[spatial], two[two.ts == now][spatial].reset_index(drop=True))
+
+
 def test_radar_features_count_only_earlier_posts(tmp_path):
     # A shahed group (count bucket "2-3", weight 2.5) heading to Poltava oblast, posted at 00:45.
     radar = pd.DataFrame({"ts": pd.to_datetime(["2026-10-01T00:45:00Z"]).as_unit("ns"), "kind": ["threat"], "weapon": ["shahed"],

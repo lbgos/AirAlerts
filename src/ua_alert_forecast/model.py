@@ -44,6 +44,7 @@ Target = Literal["start", "clear"]  # siren starts (rows not under alert) / all-
 class Config:
     name: str
     groups: tuple[str, ...] = ("time", "history", "threats", "neighbors", "national")
+    groups_by_horizon: dict[str, tuple[str, ...]] = field(default_factory=dict)  # e.g. short horizons add "spatial"
     family: Literal["lgbm", "logreg"] = "lgbm"
     lgbm: dict = field(default_factory=lambda: {"n_estimators": 300, "learning_rate": 0.05, "num_leaves": 31})
     calibration: Calibration = "platt"
@@ -201,6 +202,13 @@ def make_classifier(config: Config, features: list[str]):
     return make_pipeline(columns, LogisticRegression(max_iter=2000))
 
 
+def features_for(config: Config, horizon: Horizon, columns) -> list[str]:
+    """Feature columns for this horizon: `groups_by_horizon` overrides `groups` when it names the horizon."""
+    groups = feature_groups(columns)
+    names = config.groups_by_horizon.get(horizon, config.groups)
+    return [c for g in names for c in groups[g]]
+
+
 def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> HorizonModel | Ensemble:
     if config.members:
         return Ensemble([fit(table, horizon, split, m) for m in config.members])
@@ -213,8 +221,7 @@ def fit(table: pd.DataFrame, horizon: Horizon, split: Split, config: Config) -> 
         train = train[train["ts"] >= pd.Timestamp(config.train_since, tz="UTC")]
     if config.regions:
         train, calib = train[train["region"].isin(config.regions)], calib[calib["region"].isin(config.regions)]
-    groups = feature_groups(table.columns)
-    features = [c for g in config.groups for c in groups[g]]
+    features = features_for(config, horizon, table.columns)
     weights = 0.5 ** ((split.train_end - train["ts"]).dt.total_seconds() / 86400 / config.half_life_days)
     clf = make_classifier(config, features)
     step = "lgbmclassifier__" if config.family == "lgbm" else "logisticregression__"
